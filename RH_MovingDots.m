@@ -6,7 +6,7 @@
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
 % clearvars -except sStimPresets sStimParamsSettings sExpMeta;
-clear; close all;Screen('CloseAll');
+clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
@@ -52,7 +52,6 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.dblSubjectPosX_cm = 0; % cm; relative to center of screen
     sStimParamsSettings.dblSubjectPosY_cm = 0; % cm; relative to center of screen, -3.5
     sStimParamsSettings.dblScreenDistance_cm = 14; % cm; measured, 17
-    sStimParamsSettings.vecUseMask = 0; %[1] if mask to emulate retinal-space, [0] use screen-space
 
     %receptive field size & location parameters (values are in pixels and not dva)
     sStimParamsSettings.intRespPosX_pix = 0; % pix; x screen pos. of reponse zone
@@ -113,7 +112,7 @@ fprintf('\nAvailable sets:\n(1)"dot_grid"\n(2)"dot_variations"\n(3)"dot_speeds"\
 intStimSet = input('intStimSet= ');
 sStimParams.intStimSet = intStimSet;
 
-%response zone (online estimated resp.zone should be bigger than neurons'RFs
+%response zone (online estimated resp.zone should be (sligthly) bigger than neurons' RFs)
 if sStimParams.intStimSet ~= 1
     fprintf('\n--Estimated response zone--\n')
     sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
@@ -213,9 +212,6 @@ try
         Screen('LoadNormalizedGammaTable', ptrWindow, gammaTable*[1 1 1]);
     end
 
-    %hide cursor
-    HideCursor(ptrWindow);
-
     %window variables
     sStimParams.ptrWindow = ptrWindow;
     sStimParams.vecRect = vecRect;
@@ -288,7 +284,10 @@ try
     if ~strcmp(strAns,opts.Default)
         error([mfilename ':RunCancelled'],'Cancelling');
     end
-
+    
+    %hide cursor
+    HideCursor(ptrWindow);
+    
     %set timers
     hTic = tic;
     dblLastFlip = Screen('Flip', ptrWindow);
@@ -434,7 +433,6 @@ try
         intThisTrial = intThisTrial+1;
 	end
 	
-	%% save data
 	%save data
 	structEP.sStimParams = sStimParams;
 	save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
