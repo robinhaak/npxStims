@@ -1,31 +1,35 @@
-%RH_MovingDots
+%RH_MOVINGDOTS
+%Show different sets of dots moving across the screen
+%
+%Robin Haak, last update: 7 November 2022
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
-clearvars -except sStimPresets sStimParamsSettings sExpMeta;
+% clearvars -except sStimPresets sStimParamsSettings sExpMeta;
+clear; close all;Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-intStimSet = 1; % 1=dot_grid (for RF mapping), 2=dot_variations, 3=dot_speeds, 4=dot_reversal
-boolUseSGL = false;
-boolUseNI = false;
+boolUseSGL = true;
+boolUseNI = true;
 boolDebug = false;
-if exist('sExpMeta','var')
-    %defaults
-    dblPupilLightMultiplier = 1; %strength of infrared LEDs
-    dblSyncLightMultiplier = 0.5;
-    strHostAddress = '192.87.11.133'; %default host address
-    objDaqOut = [];
 
-    %expand structure
-    if isfield(sExpMeta,'dblPupilLightMultiplier'),dblPupilLightMultiplier=sExpMeta.dblPupilLightMultiplier;end
-    if isfield(sExpMeta,'dblSyncLightMultiplier'),dblSyncLightMultiplier=sExpMeta.dblSyncLightMultiplier;end
-    if isfield(sExpMeta,'strHostAddress'),strHostAddress=sExpMeta.strHostAddress;end
-    if isfield(sExpMeta,'objDaqOut'),objDaqOut=sExpMeta.objDaqOut;end
-    if isfield(sExpMeta,'boolUseSGL'),boolUseSGL=sExpMeta.boolUseSGL;end
-    if isfield(sExpMeta,'boolUseNI'),boolUseNI=sExpMeta.boolUseNI;end
+%defaults
+dblPupilLightMultiplier = 1; %strength of infrared LEDs
+dblSyncLightMultiplier = 0.5;
+strHostAddress = '192.87.11.133'; %default host address
+objDaqOut = [];
+
+if exist('sExpMeta','var')
+	%expand structure
+	if isfield(sExpMeta,'dblPupilLightMultiplier'),dblPupilLightMultiplier=sExpMeta.dblPupilLightMultiplier;end
+	if isfield(sExpMeta,'dblSyncLightMultiplier'),dblSyncLightMultiplier=sExpMeta.dblSyncLightMultiplier;end
+	if isfield(sExpMeta,'strHostAddress'),strHostAddress=sExpMeta.strHostAddress;end
+	if isfield(sExpMeta,'objDaqOut'),objDaqOut=sExpMeta.objDaqOut;end
+	if isfield(sExpMeta,'boolUseSGL'),boolUseSGL=sExpMeta.boolUseSGL;end
+	if isfield(sExpMeta,'boolUseNI'),boolUseNI=sExpMeta.boolUseNI;end
 else
-    sExpMeta = [];
+	sExpMeta = [];
 end
 
 %% query user input for recording name
@@ -67,8 +71,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     %stimulus control variables
     sStimParamsSettings.intUseDaqDevice = 1; %ID of DAQ device
     sStimParamsSettings.intUseParPool = 0; %number of workers in parallel pool; [2]
-    sStimParamsSettings.intUseGPU = 0;
-    sStimParamsSettings.intAntiAlias = 0;
+    sStimParamsSettings.intUseGPU = 1;
     sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is downward motion';
     sStimParamsSettings.dblBackground = 0.5; %background intensity (dbl, [0 1])
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
@@ -104,6 +107,23 @@ strThisFilePath = mfilename('fullpath');
 fprintf('Saving output in directory %s; loading textures from %s\n',strLogDir,strTexDir); %no textures are loaded for this script
 
 %% query user for stimulus set & location of the response zone/receptive field
+%stimulus set
+fprintf('--Select stimulus set--\n')
+fprintf('\nAvailable sets:\n(1)"dot_grid"\n(2)"dot_variations"\n(3)"dot_speeds"\n(4)"dot_reversal"\n\n');
+intStimSet = input('intStimSet= ');
+sStimParams.intStimSet = intStimSet;
+
+%response zone (online estimated resp.zone should be bigger than neurons'RFs
+if sStimParams.intStimSet ~= 1
+    fprintf('\n--Estimated response zone--\n')
+    sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
+    sStimParams.intRespPosY_pix = round(input('intRespPosY_pix= ')); % pix; y screen pos.
+    sStimParams.intRespSize_pix = round(input('intRespSize_pix= ')); % pix; diameter of the response zone
+else
+    sStimParams.intRespPosX_pix = NaN;
+    sStimParams.intRespPosY_pix = NaN;
+    sStimParams.intRespSize_pix = NaN;
+end
 
 %% initialize connection with SpikeGLX
 if boolUseSGL
@@ -122,26 +142,16 @@ if boolUseSGL
         [hSGL,strRunName,sParamsSGL] = InitSGL(strRecording,strHostAddress);
     end
     fprintf('SGL saving to "%s", matlab saving to "%s.mat" [%s]...\n',strRunName,strFilename,getTime);
-
+	
+	%retrieve some parameters
+	intStreamNI = -1;
+	dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+	
     %% check disk space available
     strDataDirSGL = GetDataDir(hSGL);
     jFileObj = java.io.File(strDataDirSGL);
     dblFreeGB = (jFileObj.getFreeSpace)/(1024^3);
     if dblFreeGB < 100,warning([mfilename ':LowDiskSpace'],'Low disk space available (%.0fGB) for Neuropixels data (dir: %s)',dblFreeGB,strDataDirSGL);end
-
-    %% prepare real-time stream
-    %retrieve some parameters
-    dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
-    dblNI2V = (sParamsSGL.niAiRangeMax) / (double(intmax('int16'))/2);
-
-    %assign data
-    sStream = SC_populateStreamCoreStructure([]);
-    sStream.NI2V = dblNI2V;
-    sStream.intStreamNI = intStreamNI;
-    sStream.intStimOnsetChanNI=intStimOnsetChanNI;
-    sStream.intRunningChanNI=intRunningChanNI;
-    sStream.dblSampFreqNI=dblSampFreqNI;
-    sStream.hSGL = hSGL;
 else
     strHostAddress = '';
     hSGL = [];
@@ -182,7 +192,7 @@ end
 
 try
     %% INITALIZE SCREEN
-    fprintf('Starting PsychToolBox extension...\n');
+    fprintf('\nStarting PsychToolBox extension...\n');
     %open window
     AssertOpenGL;
     KbName('UnifyKeyNames');
@@ -196,6 +206,16 @@ try
         Screen('Preference', 'SkipSyncTests', 1);
         [ptrWindow,vecRect] = Screen('OpenWindow', intUseScreen,sStimParams.intBackground,vecInitRect);
     end
+
+    %calibrate monitor
+    if exist('C:\Users\neuropixels\Desktop\GammaCorrection\gammaTable.mat','file')
+        load("C:\Users\neuropixels\Desktop\GammaCorrection\gammaTable.mat");
+        Screen('LoadNormalizedGammaTable', ptrWindow, gammaTable*[1 1 1]);
+    end
+
+    %hide cursor
+    HideCursor(ptrWindow);
+
     %window variables
     sStimParams.ptrWindow = ptrWindow;
     sStimParams.vecRect = vecRect;
@@ -230,16 +250,16 @@ try
 
     %% create presentation vectors
     %get info for each individual stimulus condition
-    [sAllDots,sDotParams] = RH_CreateDotTrajectories(intStimSet,sStimParams);
+    [sAllDots,sStimParams] = RH_CreateDotTrajectories(intStimSet,sStimParams);
 
     %build structEP (trial-based output)
     structEP = struct;
-    structEP.intTrialNum = length(sAllDots.stimID)*sDotParams.intRepsPerCondition;
+    structEP.intTrialNum = length(sAllDots.stimID)*sStimParams.intRepsPerCondition;
     structEP.TrialNum = nan(1,structEP.intTrialNum);
     structEP.dblStimFrameRate = dblStimFrameRate;
     structEP.intStimFrameRate = intStimFrameRate;
     structEP.vecStimID = [];
-    for intRep = 1:sDotParams.intRepsPerCondition
+    for intRep = 1:sStimParams.intRepsPerCondition
         structEP.vecStimID = [structEP.vecStimID sAllDots.stimID(randperm(length(sAllDots.stimID)))];
     end
     for intTrial = 1:structEP.intTrialNum
@@ -296,7 +316,7 @@ try
     %% wait initial blanking
     fprintf('Starting initial blank (dur=%.2fs) [%s]\n',sStimParams.dblSecsInitialBlank,getTime);
     dblInitialBlankDur = 0;
-    while dblInitialBlankDur < (sStimParams.dblSecsInitialBlank-dblStimFrameDur)
+    while dblInitialBlankDur < (sStimParams.dblSecsInitialBlank-dblStimFrameDur/2)
         %do nothing
         Screen('FillRect',ptrWindow,sStimParams.intBackground);
         dblLastFlipFlip = Screen('Flip', ptrWindow,dblLastFlip + dblStimFrameDur/2);
@@ -330,8 +350,8 @@ try
         dblSecsPostBlank = sStimParams.vecSecsPostBlank(1)+(sStimParams.vecSecsPostBlank(2)-sStimParams.vecSecsPostBlank(1))*rand();
 
         %display in command window
-        fprintf('%d/%d "%s" dot, dir=%d speed=%d (PBdur=%.2fs) [%s]\n',intThisTrial,structEP.intTrialNum,strStimName,dblDirection,...
-            intSpeed_ppf,dblSecsPostBlank,getTime);
+        fprintf('%d/%d "%s" dot, dir=%d speed=%d (ITI=%.2fs) [%s]\n',intThisTrial,structEP.intTrialNum,strStimName,dblDirection,...
+            intSpeed_ppf,sStimParams.dblSecsPreBlank+dblSecsPostBlank,getTime);
 
         %% wait pre-blanking
         dblPreBlankDur = 0;
@@ -353,8 +373,10 @@ try
         boolFirstFlip = false;
         intFrame = 1;
         refTimeLocal = tic;
-
         while intFrame < intFrames
+            %             Screen('FillOval',ptrWindow,sStimParams.intWhite, [sStimParams.intRespPosX_pix-sStimParams.intRespSize_pix/2 ...
+            %                 sStimParams.intRespPosY_pix-sStimParams.intRespSize_pix/2 sStimParams.intRespPosX_pix+sStimParams.intRespSize_pix/2 ...
+            %                 sStimParams.intRespPosY_pix+sStimParams.intRespSize_pix/2]);
             Screen('FillOval',ptrWindow,vecColor(intFrame),vecBoundingRect(:,intFrame)); %dot
             Screen('FillRect',ptrWindow,sStimParams.intWhite,vecDiodeRect); %diode
             dblLastFlip = Screen('Flip',ptrWindow,dblLastFlip+dblInterFlipInterval/2);
@@ -364,14 +386,12 @@ try
             if ~boolFirstFlip
                 %set switch
                 boolFirstFlip = true;
-
                 %log NI timestamp
                 if boolUseSGL
                     dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
                 else
                     dblStimOnNI = nan;
                 end
-
                 %log flip
                 dblStimOnFlip = dblLastFlip;
             end
@@ -393,8 +413,7 @@ try
         dblPostBlankDur = 0;
         Screen('FillRect',ptrWindow,sStimParams.intBackground);
         dblLastFlip = Screen('Flip',ptrWindow);
-        dblStimOffFlip = dblLastFlip;
-        while dblPostBlankDur < (sStimParams.dblSecsPreBlank-dblStimFrameDur)
+        while dblPostBlankDur < (sStimParams.dblSecsPreBlank-dblStimFrameDur*2)
             %do nothing
             Screen('FillRect',ptrWindow,sStimParams.intBackground);
             dblLastFlip = Screen('Flip',ptrWindow,dblLastFlip+dblStimFrameDur/2);
@@ -413,11 +432,19 @@ try
 
         %increment trial
         intThisTrial = intThisTrial+1;
-    end
-
+	end
+	
+	%% save data
+	%save data
+	structEP.sStimParams = sStimParams;
+	save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
+	
+	%show trial summary
+	fprintf('Finished experiment & data saving at [%s], waiting for end blank (dur=%.3fs)\n',getTime,sStimParams.dblSecsEndBlank)
+	
     %% wait end-blanking
     dblEndBlankDur = 0;
-    while dblEndBlankDur < sStimParams.dblSecsEndBlank 
+    while dblEndBlankDur < sStimParams.dblSecsEndBlank
         %do nothing
         Screen('FillRect',ptrWindow, sStimParams.intBackground);
         dblEndFlip = Screen('Flip', ptrWindow);
@@ -471,7 +498,7 @@ catch ME
         fprintf('\n\n\nError occurred! Trying to save data and clean up...\n\n\n');
 
         %save data
-        structEP.sStimParams = sStimParams;
+        structEP.sStimParams = sStimParams; %#ok<STRNU>
         if ~exist('sParamsSGL','var'),sParamsSGL=[];end
         save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
 
