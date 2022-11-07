@@ -81,7 +81,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	%control variables
 	sStimParamsSettings.intUseDaqDevice = 1; %ID of DAQ device
 	sStimParamsSettings.intUseParPool = 0; %number of workers in parallel pool; [2]
-	sStimParamsSettings.intUseGPU = 0;
+	sStimParamsSettings.intUseGPU = 1;
 	
 else
 	% evaluate and assign pre-defined values to structure
@@ -204,9 +204,6 @@ try
 		Screen('LoadNormalizedGammaTable', ptrWindow, gammaTable*[1 1 1]);
 	end
 	
-	%hide cursor
-	HideCursor(ptrWindow);
-	
 	%window variables
 	sStimParams.ptrWindow = ptrWindow;
 	sStimParams.vecRect = vecRect;
@@ -325,6 +322,9 @@ try
 		error([mfilename ':RunCancelled'],'Cancelling');
 	end
 	
+	%hide cursor
+	HideCursor(ptrWindow);
+	
 	%set timers
 	hTic = tic;
 	dblLastFlip = Screen('Flip', ptrWindow);
@@ -350,7 +350,7 @@ try
 	end
 	
 	%% wait initial blanking
-	fprintf('Starting initial blank (dur=%.3fs) [%s]\n',sStimParams.dblSecsInitialBlank,getTime);
+	fprintf('Starting initial blank (dur=%.2fs) [%s]\n',sStimParams.dblSecsInitialBlank,getTime);
 	dblInitialBlankDur = 0;
 	while dblInitialBlankDur < (sStimParams.dblSecsInitialBlank-dblStimFrameDur)
 		%do nothing
@@ -484,13 +484,13 @@ try
 		
 		
 	end
-	%% save data
-	%save data
+
+%save data
 	structEP.sStimParams = sStimParams;
 	save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
 	
-	%show trial summary
-	fprintf('Finished experiment & data saving at [%s], waiting for end blank (dur=%.3fs)\n',getTime,sStimParams.dblSecsEndBlank)
+	%show summary
+	fprintf('Finished experiment & data saving at [%s], waiting for end blank (dur=%.2fs)\n',getTime,sStimParams.dblSecsEndBlank)
 	
 	%% wait end-blanking
 	dblEndBlankDur = 0;
