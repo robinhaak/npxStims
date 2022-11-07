@@ -1,6 +1,6 @@
 
 %RH_GRATINGSPATCHES
-%Display patches of gratings, drifting in the cardinal to directions to map receptive fields
+%Display patches of gratings, drifting in the cardinal directions to map receptive fields
 %
 %Robin Haak, last update: 7 November 2022
 
