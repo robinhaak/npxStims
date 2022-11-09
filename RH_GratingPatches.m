@@ -2,7 +2,7 @@
 %RH_GRATINGSPATCHES
 %Display patches of gratings, drifting in the cardinal directions to map receptive fields
 %
-%Robin Haak, last update: 7 November 2022
+%Robin Haak, last update: 8 November 2022
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -50,9 +50,9 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	sStimParamsSettings.strTempObjectPath = 'X:\JorritMontijn\';%X:\JorritMontijn\ or F:\Data\Temp\
 	
 	%visual space parameters
-	sStimParamsSettings.dblSubjectPosX_cm = 0; % cm; relative to center of screen
-	sStimParamsSettings.dblSubjectPosY_cm = 0; % cm; relative to center of screen
-	sStimParamsSettings.dblScreenDistance_cm = 17; % cm; measured
+% 	sStimParamsSettings.dblSubjectPosX_cm = 0; % cm; relative to center of screen
+% 	sStimParamsSettings.dblSubjectPosY_cm = 0; % cm; relative to center of screen
+	sStimParamsSettings.dblScreenDistance_cm = 23; % cm; measured [~23]
 	
 	%screen variables
 	sStimParamsSettings.intCornerTrigger = 2; % integer switch; 0=none,1=upper left, 2=upper right, 3=lower left, 4=lower right
@@ -66,7 +66,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 	
 	%strimulus parameters
-	sStimParamsSettings.dblStimulusSize_deg = 12; %deg; (approximate) size of grating patches
+	sStimParamsSettings.dblStimulusSize_deg = 10; %deg; (approximate) size of grating patches
 	sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree
 	sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
 	sStimParamsSettings.dblSecsDuration = 0.5; %s
