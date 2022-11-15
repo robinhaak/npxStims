@@ -1,7 +1,6 @@
-
 function  [sAllDots, sStimParams] = RH_CreateDotTrajectories(intStimSet,sStimParams)
 %I'm aware that this has become a monstrosity
-%Robin Haak, last update: 7 November 2022
+%Robin Haak, last update: 11 November 2022
 
 %% standard dot parameters
 sStimParams.dblSize_deg = 3; % deg; approx. stimulus size in dva
@@ -21,10 +20,10 @@ if intStimSet == 1
     end
     %change #reps
     sStimParams.intReps = 5;
-    sStimParams.vecSecsPostBlank = [0.25 0.25];
+%     sStimParams.vecSecsPostBlank = [0.25 0.25];
 
     %get number of trajectories
-    sStimParams.intTrajSpacing_pix = round(6*sStimParams.dblPixelsPerDeg); %spacing is ~6 dva (as in Beltramo&&Scanziani, Science 2019);
+    sStimParams.intTrajSpacing_pix = round(6*sStimParams.dblPixelsPerDeg); %spacing is ~6 dva (as in Beltramo && Scanziani, Science 2019)
     intTrajX = round((sStimParams.intScreenWidth_pix-sStimParams.intTrajSpacing_pix)/sStimParams.intTrajSpacing_pix)*2; %2 directions
     intTrajY = round((sStimParams.intScreenHeight_pix-sStimParams.intTrajSpacing_pix)/sStimParams.intTrajSpacing_pix)*2;
 
@@ -188,7 +187,7 @@ elseif intStimSet == 2
             intStimIdx = intStimIdx+1;
         end
     end
-    %'shuffle', order of dot position along trajectory before resp.zone is temporally shuffled
+    %'shuffle', order of dot position along trajectory before response field is temporally shuffled
     if sum(strcmp(vecStimConditions(:),'shuffle'))> 0
         vecRespBordersX = [sStimParams.intRespPosX_pix-sStimParams.intRespSize_pix/2 sStimParams.intRespPosX_pix+sStimParams.intRespSize_pix/2];
         if sum(sStimParams.vecDirections==0)>0 %left-right (0)
@@ -252,7 +251,7 @@ elseif intStimSet == 2
 elseif intStimSet == 3
     %% (3) 'dot_speeds' - dots moving continuously at different speeds
     %set speeds
-    sStimParams.vecDotSpeeds_deg = [6 15 30 60 120]; % deg/s
+    sStimParams.vecDotSpeeds_deg = [3 6 15 30 60 120]; % deg/s
     sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; % pixels/s
     sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate); % pixels/frame
     if sum(sStimParams.vecDotSpeeds_ppf == 0) > 0
@@ -351,7 +350,7 @@ elseif intStimSet == 4
             intStimIdx = intStimIdx+1;
         end
     end
-    %'reversal_1', dot motion direction reverses just before entering resp.zone
+    %'reversal_1', dot motion direction reverses just before entering response field
     if sum(strcmp(vecStimConditions(:),'reversal_1'))>0
         if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
             sAllDots.stimID(intStimIdx) = intStimIdx;
@@ -374,7 +373,7 @@ elseif intStimSet == 4
             intStimIdx = intStimIdx+1;
         end
     end
-    %'reversal_2', motion direction reverses in the middle of estimated resp.zone
+    %'reversal_2', motion direction reverses in the middle of estimated response field
     if sum(strcmp(vecStimConditions(:),'reversal_2'))>0
         if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
             sAllDots.stimID(intStimIdx) = intStimIdx;
@@ -397,7 +396,7 @@ elseif intStimSet == 4
             intStimIdx = intStimIdx+1;
         end
     end
-    %'reversal_3', motion direction reverses just after leaving resp.zone
+    %'reversal_3', motion direction reverses just after leaving response field
     if sum(strcmp(vecStimConditions(:),'reversal_3'))>0
         if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
             sAllDots.stimID(intStimIdx) = intStimIdx;
@@ -424,132 +423,6 @@ elseif intStimSet == 4
     sAllDots.vecSpeed_deg = repmat(sStimParams.vecDotSpeeds_deg,size(sAllDots.vecBoundingRect));
     sAllDots.vecSpeed_pix = repmat(sStimParams.vecDotSpeeds_pix,size(sAllDots.vecBoundingRect));
 
-elseif intStimSet == 5
-    %% (5) 'dot_reversal_2' - dots reversing direction of motion, 3 fixed reversal locations
-    if length(sStimParams.vecDotSpeeds_pix)>1 %just to be sure
-        error('vecDotSpeeds_pix should not be >1!');
-    end
-    %increase ITI duration
-    sStimParams.dblSecsInitialBlank = 30;
-    sStimParams.vecSecsPostBlank = [6.75 11.75];
-
-    %input desired stimulus conditions
-    vecStimConditions = {'classic','reversal_1','reversal_2','reversal_3'}; %available: 'classic', 'reversal_1', 'reversal_2', 'reversal_3'
-
-    %create base trajectories
-    if sum(sStimParams.vecDirections==0)>0 %left-right (0)
-        vecBoundingRect = [];
-        vecBoundingRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
-        vecBoundingRect(2,:) = repmat(sStimParams.intScreenHeight_pix/2-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-        vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
-        vecBoundingRect(4,:) = repmat(sStimParams.intScreenHeight_pix/2+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-        vecLeftRight = vecBoundingRect;
-    end
-    if sum(sStimParams.vecDirections==180)>0 %right-left (180)
-        vecBoundingRect = [];
-        vecBoundingRect(1,:) = -(-sStimParams.intScreenWidth_pix:sStimParams.vecDotSpeeds_ppf:(0+sStimParams.intSize_pix+sStimParams.vecDotSpeeds_ppf));
-        vecBoundingRect(2,:) = repmat(sStimParams.intScreenHeight_pix/2-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-        vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
-        vecBoundingRect(4,:) = repmat(sStimParams.intScreenHeight_pix/2+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-        vecRightLeft = vecBoundingRect;
-    end
-
-    %create 'sAllDots' struct containing parameters for each trajectory
-    sAllDots = struct;
-    sAllDots.strStimSet = 'dot_reversal';
-    intStimIdx = 1;
-    vecBordersX = [sStimParams.intScreenWidth_pix/2-300 sStimParams.intScreenWidth_pix/2+300]; %middle of the screen +/- x pixs
-    %'classic', continuous movement
-    if sum(strcmp(vecStimConditions(:),'classic'))>0
-        if sum(sStimParams.vecDirections==0)>0 %left-right (0)
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            sAllDots.vecBoundingRect{intStimIdx} = vecLeftRight;
-            sAllDots.vecReversalFrame(intStimIdx) = NaN;
-            sAllDots.vecDirection(intStimIdx) = 0;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'classic';
-            intStimIdx = intStimIdx+1;
-        end
-        if sum(sStimParams.vecDirections==180)>0  %right-left (180)
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            sAllDots.vecBoundingRect{intStimIdx} = vecRightLeft;
-            sAllDots.vecReversalFrame(intStimIdx) = NaN;
-            sAllDots.vecDirection(intStimIdx) = 180;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'classic';
-            intStimIdx = intStimIdx+1;
-        end
-    end
-    %'reversal_1', dot motion direction reverses just before entering resp.zone
-    if sum(strcmp(vecStimConditions(:),'reversal_1'))>0
-        if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecLeftRight(:,vecLeftRight(3,:)<vecBordersX(1)); %(3,:)=leading edge
-            sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
-            sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
-            sAllDots.vecDirection(intStimIdx) = 0;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'reversal_1';
-            intStimIdx = intStimIdx+1;
-        end
-        if sum(sStimParams.vecDirections==180)>0 %right-left (180)
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecRightLeft(:,vecRightLeft(1,:)>vecBordersX(2)); %(1,:)=leading edge
-            sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
-            sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
-            sAllDots.vecDirection(intStimIdx) = 180;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'reversal_1';
-            intStimIdx = intStimIdx+1;
-        end
-    end
-    %'reversal_2', motion direction reverses in the middle of estimated resp.zone
-    if sum(strcmp(vecStimConditions(:),'reversal_2'))>0
-        if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecLeftRight(:,vecLeftRight(3,:)<sStimParams.intScreenWidth_pix/2+sStimParams.intSize_pix/2); %(3,:)=leading edge
-            sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
-            sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
-            sAllDots.vecDirection(intStimIdx) = 0;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'reversal_2';
-            intStimIdx = intStimIdx+1;
-        end
-        if sum(sStimParams.vecDirections==180)>0 %right-left (180)
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecRightLeft(:,vecRightLeft(1,:)>sStimParams.intScreenWidth_pix/2-sStimParams.intSize_pix/2); %(1,:)=leading edge
-            sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
-            sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
-            sAllDots.vecDirection(intStimIdx) = 180;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'reversal_2';
-            intStimIdx = intStimIdx+1;
-        end
-    end
-    %'reversal_3', motion direction reverses just after leaving resp.zone
-    if sum(strcmp(vecStimConditions(:),'reversal_3'))>0
-        if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecLeftRight(:,vecLeftRight(1,:)<vecBordersX(2)); %(3,:)=trailing edge
-            sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
-            sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
-            sAllDots.vecDirection(intStimIdx) = 0;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'reversal_3';
-            intStimIdx = intStimIdx+1;
-        end
-        if sum(sStimParams.vecDirections==180)>0 %right-left (180)
-            sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecRightLeft(:,vecRightLeft(3,:)>vecBordersX(1)); %(3,:)=leading edge
-            sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
-            sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
-            sAllDots.vecDirection(intStimIdx) = 180;
-            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-            sAllDots.vecStimName{intStimIdx} = 'reversal_3';
-            intStimIdx = intStimIdx+1;
-        end
-    end
-    sAllDots.intStimulusConditions = intStimIdx-1;
-    sAllDots.vecSpeed_deg = repmat(sStimParams.vecDotSpeeds_deg,size(sAllDots.vecBoundingRect));
-    sAllDots.vecSpeed_pix = repmat(sStimParams.vecDotSpeeds_pix,size(sAllDots.vecBoundingRect));
+    %% add more sets here
+    %elseif intStimSet == 5
 end

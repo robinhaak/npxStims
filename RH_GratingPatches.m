@@ -1,8 +1,7 @@
-
 %RH_GRATINGSPATCHES
 %Display patches of gratings, drifting in the cardinal directions to map receptive fields
 %
-%Robin Haak, last update: 8 November 2022
+%Robin Haak, last update: 11 November 2022
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -11,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true;
-boolUseNI = true;
+boolUseSGL = false;
+boolUseNI = false;
 boolDebug = false;
 
 %defaults
@@ -66,7 +65,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 	
 	%strimulus parameters
-	sStimParamsSettings.dblStimulusSize_deg = 10; %deg; (approximate) size of grating patches
+	sStimParamsSettings.dblStimulusSize_deg = 9; %deg; (approximate) size of grating patches
 	sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree
 	sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
 	sStimParamsSettings.dblSecsDuration = 0.5; %s
@@ -74,7 +73,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	sStimParamsSettings.dblSecsPreBlank = 0.25; %s
 	sStimParamsSettings.dblSecsPostBlank = 0.5; %s
 	sStimParamsSettings.dblSecsEndBlank = 5; %s
-	sStimParamsSettings.intStimulusRepeats = 10; %per location (irrespective of orientation)
+	sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of orientation)
 	sStimParamsSettings.vecDirections = [0 90 180 270]; %drifting directions, fixed
 	sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is downward motion';
 	
@@ -108,7 +107,7 @@ strOutputPath = sStimParamsSettings.strOutputPath;
 strTempObjectPath = sStimParamsSettings.strTempObjectPath;
 strThisFilePath = mfilename('fullpath');
 [strFilename,strLogDir,strTempDir,strTexDir] = RE_assertPaths(strOutputPath,strRecording,strTempObjectPath,strThisFilePath);
-fprintf('Saving output in directory %s; loading textures from %s\n',strLogDir,strTexDir);
+fprintf('Saving output in directory %s\n',strLogDir);
 
 %% initialize connection with SpikeGLX
 if boolUseSGL
@@ -294,7 +293,8 @@ try
 	structEP = struct;
 	structEP.intTrialNum = intTotalTrials;
 	structEP.TrialNumber = nan(1,structEP.intTrialNum);
-	structEP.dblStimFrameDur = dblStimFrameDur;
+	structEP.dblStimFrameDur = dblStimFrameDur;    
+    structEP.dblInterFlipInterval = dblInterFlipInterval;
 	structEP.dblStimulusSize_deg = repmat(sStimParams.dblStimulusSize_deg,[1 structEP.intTrialNum]);
 	structEP.intStimulusSize_pix = repmat(sStimParams.intStimulusSize_pix,[1 structEP.intTrialNum]);
 	structEP.ActOnSecs = nan(1,structEP.intTrialNum);
@@ -548,7 +548,7 @@ catch ME
 		fprintf('\n\n\nError occurred! Trying to save data and clean up...\n\n\n');
 		
 		%save data
-		structEP.sStimParams = sStimParams; %#ok<STRNU>
+		structEP.sStimParams = sStimParams; 
 		if ~exist('sParamsSGL','var'),sParamsSGL=[];end
 		save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
 		
