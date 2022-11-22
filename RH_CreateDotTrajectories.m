@@ -1,6 +1,6 @@
 function  [sAllDots, sStimParams] = RH_CreateDotTrajectories(intStimSet,sStimParams)
 %I'm aware that this has become a monstrosity
-%Robin Haak, last update: 11 November 2022
+%Robin Haak, last update: 22 November 2022
 
 %% standard dot parameters
 sStimParams.dblSize_deg = 3; % deg; approx. stimulus size in dva
@@ -20,7 +20,7 @@ if intStimSet == 1
     end
     %change #reps
     sStimParams.intReps = 5;
-%     sStimParams.vecSecsPostBlank = [0.25 0.25];
+    %     sStimParams.vecSecsPostBlank = [0.25 0.25];
 
     %get number of trajectories
     sStimParams.intTrajSpacing_pix = round(6*sStimParams.dblPixelsPerDeg); %spacing is ~6 dva (as in Beltramo && Scanziani, Science 2019)
@@ -354,7 +354,7 @@ elseif intStimSet == 4
     if sum(strcmp(vecStimConditions(:),'reversal_1'))>0
         if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
             sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecLeftRight(:,vecLeftRight(3,:)<vecRespBordersX(1)); %(3,:)=leading edge
+            vecBoundingRect = vecLeftRight(:,vecLeftRight(3,:)<vecRespBordersX(1)+sStimParams.intSize_pix/2); %(3,:)=leading edge
             sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
             sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
             sAllDots.vecDirection(intStimIdx) = 0;
@@ -364,7 +364,7 @@ elseif intStimSet == 4
         end
         if sum(sStimParams.vecDirections==180)>0 %right-left (180)
             sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecRightLeft(:,vecRightLeft(1,:)>vecRespBordersX(2)); %(1,:)=leading edge
+            vecBoundingRect = vecRightLeft(:,vecRightLeft(1,:)>vecRespBordersX(2)-sStimParams.intSize_pix/2); %(1,:)=leading edge
             sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
             sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
             sAllDots.vecDirection(intStimIdx) = 180;
@@ -396,11 +396,11 @@ elseif intStimSet == 4
             intStimIdx = intStimIdx+1;
         end
     end
-    %'reversal_3', motion direction reverses just after leaving response field
+    %'reversal_3', motion direction reverses when leaving response field
     if sum(strcmp(vecStimConditions(:),'reversal_3'))>0
         if sum(sStimParams.vecDirections==0)>0 %left-right (0), initial direction
             sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecLeftRight(:,vecLeftRight(1,:)<vecRespBordersX(2)); %(3,:)=trailing edge
+            vecBoundingRect = vecLeftRight(:,vecLeftRight(1,:)<vecRespBordersX(2)-sStimParams.intSize_pix/2); %(3,:)=trailing edge
             sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
             sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
             sAllDots.vecDirection(intStimIdx) = 0;
@@ -410,7 +410,7 @@ elseif intStimSet == 4
         end
         if sum(sStimParams.vecDirections==180)>0 %right-left (180)
             sAllDots.stimID(intStimIdx) = intStimIdx;
-            vecBoundingRect = vecRightLeft(:,vecRightLeft(3,:)>vecRespBordersX(1)); %(3,:)=leading edge
+            vecBoundingRect = vecRightLeft(:,vecRightLeft(3,:)>vecRespBordersX(1)+sStimParams.intSize_pix/2); %(3,:)=leading edge
             sAllDots.vecBoundingRect{intStimIdx} = [vecBoundingRect flip(vecBoundingRect(:,1:end-1),2)];
             sAllDots.vecReversalFrame(intStimIdx) = size(vecBoundingRect,2)+1;
             sAllDots.vecDirection(intStimIdx) = 180;
