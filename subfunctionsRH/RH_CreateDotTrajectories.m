@@ -1,6 +1,6 @@
 function  [sAllDots, sStimParams] = RH_CreateDotTrajectories(intStimSet,sStimParams)
 %I'm aware that this has become a monstrosity
-%Robin Haak, last update: 11 November 2022
+%Robin Haak, last update: 22 November 2022
 
 %% standard dot parameters
 sStimParams.dblSize_deg = 3; % deg; approx. stimulus size in dva
