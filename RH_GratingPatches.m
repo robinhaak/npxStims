@@ -1,7 +1,7 @@
 %RH_GRATINGSPATCHES
 %Display patches of gratings, drifting in the cardinal directions to map receptive fields
 %
-%Robin Haak, last update: 11 November 2022
+%Robin Haak, last update: 23 November 2022
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = false;
-boolUseNI = false;
+boolUseSGL = true;
+boolUseNI = true;
 boolDebug = false;
 
 %defaults
@@ -294,7 +294,7 @@ try
 	structEP.intTrialNum = intTotalTrials;
 	structEP.TrialNumber = nan(1,structEP.intTrialNum);
 	structEP.dblStimFrameDur = dblStimFrameDur;    
-    structEP.dblInterFlipInterval = dblInterFlipInterval;
+    	structEP.dblInterFlipInterval = dblInterFlipInterval;
 	structEP.dblStimulusSize_deg = repmat(sStimParams.dblStimulusSize_deg,[1 structEP.intTrialNum]);
 	structEP.intStimulusSize_pix = repmat(sStimParams.intStimulusSize_pix,[1 structEP.intTrialNum]);
 	structEP.ActOnSecs = nan(1,structEP.intTrialNum);
@@ -481,8 +481,7 @@ try
 		
 		%%increment trial number
 		intThisTrial = intThisTrial+1;
-		
-		
+			
 	end
 
 %save data
