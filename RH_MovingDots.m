@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 22 November 2022
+%Robin Haak, last update: 23 November 2022
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -281,8 +281,6 @@ try
     structEP.ActStopSecs = nan(1,structEP.intTrialNum);
     structEP.ActOnNI = nan(1,structEP.intTrialNum);
     structEP.ActOffNI = nan(1,structEP.intTrialNum);
-    structEP.ActRevSecs = nan(1,structEP.intTrialNum);
-    structEP.ActRevNI = nan(1,structEP.intTrialNum);
 
     %% PRESENT STIMULI
     %wait for user input
@@ -410,10 +408,10 @@ try
             end
 
             %log approx. reversal time
-            if boolReversalTrial && intFrame == intReversalFrame
+            if boolUseSGL && boolReversalTrial && intFrame == intReversalFrame
                 if boolUseSGL
                     dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
-                else
+                elseif ~boolUseSGL && boolReversalTrial && intFrame == intReversalFrame
                     dblStimOffNI = nan;
                 end
                 dblStimOffFlip = dblLastFlip;
