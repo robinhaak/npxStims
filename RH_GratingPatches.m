@@ -323,7 +323,7 @@ try
 	end
 	
 	%hide cursor
-	HideCursor(ptrWindow);
+	%HideCursor(ptrWindow);
 	
 	%set timers
 	hTic = tic;
