@@ -260,8 +260,8 @@ try
     structEP = struct;
     structEP.intTrialNum = length(vecStimID)*sStimParams.intReps;
     structEP.TrialNum = nan(1,structEP.intTrialNum);
-    structEP.dblInterFlipInterval = dblInterFlipInterval;
     structEP.dblStimFrameDur = dblStimFrameDur;
+    structEP.dblInterFlipInterval = dblInterFlipInterval;
     structEP.vecStimID = [];
     for intRep = 1:sStimParams.intReps
         structEP.vecStimID = [structEP.vecStimID vecStimID(randperm(length(vecStimID)))];
