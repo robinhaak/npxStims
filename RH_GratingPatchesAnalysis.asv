@@ -66,7 +66,7 @@ for intCh = vecChs
 
     figure; hold on; title(['Channel: ' num2str(intCh)]);
     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAll_interp);
-    set(gca, 'YDir','reverse'); colorbar;
+    set(gca, 'YDir','reverse'); colormap('turbo'); colorbar;
     fixfig;
     pause
 end
