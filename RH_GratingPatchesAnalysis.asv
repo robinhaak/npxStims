@@ -44,13 +44,16 @@ for intCh = 1:intNumChs
     for intTrial = 1:structEP.intTrialNum
         vecSpikeT = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)&vecSpikesCh<vecStimOffSecs(intTrial));
         vecRate(intTrial) = numel(vecSpikeT)/(vecStimOffSecs(intTrial)-vecStimOnSecs(intTrial));
+        vecSpikeB = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)-1&vecSpikesCh<vecStimOnSecs(intTrial));
+        vecBase(intTrial) = numel(vecSpikeB)/1;
     end
     matAvgResp = NaN(numel(vecY_pix),numel(vecX_pix));
     for intLoc = vecUniqueStims
         matAvgResp(intLoc) = mean(vecRate(vecStimIdx==intLoc));
+        matAvgRespBlSub(intLoc) = mean(vecRate(vecStimIdx==intLoc))-mean(vecBase(vecStimIdx==intLoc));
     end
     matAvgRespAll(:,:,intCh) = matAvgResp;
-
+    matAvgRespAllBlSub(:,:,intCh) = matAvgRespBlSub;
 end
 
 %% plot data
@@ -60,13 +63,21 @@ vecChs = [140:170]; %inputs channels to plot
 vecX_pix_interp = linspace(vecX_pix(1),vecX_pix(end),73);
 vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),41);
 
+%get colormap(s)
+
+cellColorMaps = RH_Colormaps;
 
 for intCh = vecChs
     matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intCh),3);
-
-    figure; hold on; title(['Channel: ' num2str(intCh)]);
+    matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intCh),3);
+    figure;sgtitle(['Channel: ' num2str(intCh)]);
+    subplot(2,1,1);
     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAll_interp);
-    set(gca, 'YDir','reverse'); colormap('turbo'); colorbar;
+    set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;
+    fixfig;
+    subplot(2,1,2);
+    imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
+    set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;
     fixfig;
     pause
 end

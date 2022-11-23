@@ -38,36 +38,50 @@ vecY_pix = unique(vecUniqueRects(:,2))+(vecUniqueRects(1,4)-unique(vecUniqueRect
 
 %% loop through data
 matAvgRespAll = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
+matAvgRespAllBlSub = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
 for intCh = 1:intNumChs
     vecSpikesCh = vecSpikeSecs(vecSpikeCh==intCh);
     vecRate = zeros(1,structEP.intTrialNum);
+    vecBase = zeros(1,structEP.intTrialNum);
     for intTrial = 1:structEP.intTrialNum
         vecSpikeT = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)&vecSpikesCh<vecStimOffSecs(intTrial));
         vecRate(intTrial) = numel(vecSpikeT)/(vecStimOffSecs(intTrial)-vecStimOnSecs(intTrial));
+        vecSpikeB = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)-1&vecSpikesCh<vecStimOnSecs(intTrial));
+        vecBase(intTrial) = numel(vecSpikeB)/1;
     end
     matAvgResp = NaN(numel(vecY_pix),numel(vecX_pix));
+    matAvgRespBlSub = NaN(numel(vecY_pix),numel(vecX_pix));
+
     for intLoc = vecUniqueStims
         matAvgResp(intLoc) = mean(vecRate(vecStimIdx==intLoc));
+        matAvgRespBlSub(intLoc) = mean(vecRate(vecStimIdx==intLoc))-mean(vecBase(vecStimIdx==intLoc));
     end
     matAvgRespAll(:,:,intCh) = matAvgResp;
-
+    matAvgRespAllBlSub(:,:,intCh) = matAvgRespBlSub;
 end
 
 %% plot data
-vecChs = [140:170]; %inputs channels to plot
-
 %interpolate
 vecX_pix_interp = linspace(vecX_pix(1),vecX_pix(end),73);
 vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),41);
 
+%get colormap(s)
+cellColorMaps = RH_ColorMaps;
 
+%loop through channels
+vecChs = [140:150]; %inputs channels to plot (1 = bottom Ch?)
 for intCh = vecChs
     matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intCh),3);
-
-    figure; hold on; title(['Channel: ' num2str(intCh)]);
+    matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intCh),3);
+    figure;sgtitle(['Channel: ' num2str(intCh)]);
+%     subplot(2,1,1);
     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAll_interp);
-    set(gca, 'YDir','reverse'); colorbar;
+    set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});cb=colorbar;cb.Label.String='spks/s';
     fixfig;
+%     subplot(2,1,2);
+%     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
+%     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;
+%     fixfig;
     pause
 end
 
