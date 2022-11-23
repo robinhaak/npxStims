@@ -261,7 +261,7 @@ try
     structEP.intTrialNum = length(vecStimID)*sStimParams.intReps;
     structEP.TrialNum = nan(1,structEP.intTrialNum);
     structEP.dblInterFlipInterval = dblInterFlipInterval;
-    structEP.dblStimFrameRate = dblStimFrameRate;
+    structEP.dblStimFrameDur = dblStimFrameDur;
     structEP.vecStimID = [];
     for intRep = 1:sStimParams.intReps
         structEP.vecStimID = [structEP.vecStimID vecStimID(randperm(length(vecStimID)))];
@@ -295,7 +295,7 @@ try
     end
 
     %hide cursor
-    HideCursor(ptrWindow);
+    %HideCursor(ptrWindow);
 
     %set timers
     hTic = tic;
@@ -458,7 +458,6 @@ try
         structEP.ActStopSecs(intStimNumber) = dblLastFlip;
         structEP.ActOnNI(intStimNumber) = dblStimOnNI;
         structEP.ActOffNI(intStimNumber) = dblStimOffNI;
-
 
         %increment trial
         intThisTrial = intThisTrial+1;
