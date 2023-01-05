@@ -7,20 +7,23 @@ sStimParams.dblSize_deg = 3; % deg; approx. stimulus size in dva
 sStimParams.intSize_pix = round(sStimParams.dblSize_deg*sStimParams.dblPixelsPerDeg);
 sStimParams.dblColor = 0; %color (dbl, [0 1])
 sStimParams.intColor = round(mean(sStimParams.dblColor)*255);
-sStimParams.vecDotSpeeds_deg = 30; %approx. speed in deg/s
+sStimParams.vecDotSpeeds_deg = 15; %30; %approx. speed in deg/s
 sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
 sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
 sStimParams.vecDirections = [0 180]; %0 is rightward & 90 is downward motion, for now only 0 and 180 are available (with the exception of 'dot_grid')
-sStimParams.intReps = 10;
+sStimParams.intReps = 15;
 
 if intStimSet == 1
     %% (1) 'dot_grid' - dots moving along multiple horizontal & vertical trajectories
     if length(sStimParams.vecDotSpeeds_pix)>1 %just to be sure
         error('vecDotSpeeds_pix should not be >1!');
     end
-    %change #reps
-    sStimParams.intReps = 5;
-    %     sStimParams.vecSecsPostBlank = [0.25 0.25];
+	%set-specific parameters
+	sStimParams.intReps = 10;
+	sStimParams.vecDotSpeeds_deg = 30; %approx. speed in deg/s
+	sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
+	sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
+	sStimParams.vecSecsPostBlank = [0.25 0.25];
 
     %get number of trajectories
     sStimParams.intTrajSpacing_pix = round(6*sStimParams.dblPixelsPerDeg); %spacing is ~6 dva (as in Beltramo && Scanziani, Science 2019)
@@ -96,7 +99,7 @@ elseif intStimSet == 2
     end
 
     %input desired stimulus conditions
-    vecStimConditions = {'classic','appear','disappear','shuffle','offset'}; %available: 'classic', 'appear', 'disappear', 'shuffle', 'offset'
+    vecStimConditions = {'classic','appear','disappear','offset'}; %available: 'classic', 'appear', 'disappear', 'shuffle', 'offset'
 
     %create base trajectories
     if sum(sStimParams.vecDirections==0)>0 %left-right (0)

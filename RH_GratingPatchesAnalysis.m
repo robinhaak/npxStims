@@ -67,13 +67,13 @@ vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),41);
 
 %get colormap(s)
 cellColorMaps = RH_ColorMaps;
-
+%%
 %loop through channels
-vecChs = [140:150]; %inputs channels to plot (1 = bottom Ch?)
+vecChs = flip([200:250]); %inputs channels to plot (1 = bottom Ch?)
 for intCh = vecChs
     matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intCh),3);
     matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intCh),3);
-    figure;sgtitle(['Channel: ' num2str(intCh)]);
+    figure;hold on;title(['Channel: ' num2str(intCh)]);
 %     subplot(2,1,1);
     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAll_interp);
     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});cb=colorbar;cb.Label.String='spks/s';
@@ -82,7 +82,7 @@ for intCh = vecChs
 %     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
 %     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;
 %     fixfig;
-    pause
+%     pause
 end
 
 

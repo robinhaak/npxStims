@@ -65,7 +65,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 	
 	%strimulus parameters
-	sStimParamsSettings.dblStimulusSize_deg = 9; %deg; (approximate) size of grating patches
+	sStimParamsSettings.dblStimulusSize_deg = 9; %6; %deg; (approximate) size of grating patches
 	sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree
 	sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
 	sStimParamsSettings.dblSecsDuration = 0.5; %s
