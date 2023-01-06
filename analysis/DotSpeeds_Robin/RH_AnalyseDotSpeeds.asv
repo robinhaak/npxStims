@@ -67,6 +67,10 @@ else
     sSelNeuron = sAggNeuron;
 end
 
+%add to record
+record.sAggNeuron = sAggNeuron;
+record.sSelNeuron = sSelNeuron;
+
 %% find stimulus block
 vecIsStim = [];
 for intBlock = 1:numel(sAP.cellBlock)
@@ -84,7 +88,7 @@ record.sStimuli = sAP.cellBlock{1,indBlock};
 fprintf('[%s] Found "%s" stimulus block\n',getTime,sParams.strStimulus)
 
 %% re-calculate stimulus speeds from bounding rects
-fprintf('[%s] Re-calculating stimulus speeds\n',getTime);
+fprintf('[%s] Re-computing stimulus speeds\n',getTime);
 for intStim = 1:record.sStimuli.sAllDots.intStimulusConditions
     vecBoundingRect = record.sStimuli.sAllDots.vecBoundingRect{intStim};
     intSpeed_ppf = mean(diff(vecBoundingRect(1,:)')); %pix/frame
@@ -112,24 +116,17 @@ vecSpeed_pix = record.sStimuli.vecSpeed_pix;
 %0= leftwards, 180= rightwards
 indLeft = record.sStimuli.sAllDots.stimID(record.sStimuli.sAllDots.vecDirection==0);
 indRight = record.sStimuli.sAllDots.stimID(record.sStimuli.sAllDots.vecDirection==180);
-if any(diff(abs(record.sStimuli.sAllDots.vecSpeed_pix(indLeft)))
+if sum(diff(abs(record.sStimuli.sAllDots.vecSpeed_pix(indLeft)))<0)>0 || sum(diff(abs(record.sStimuli.sAllDots.vecSpeed_pix(indRight)))<0)>0
+    error('Order of vecSpeed_pix in sAllDots is funky! Please check');
+end
 
-
-
-
-disp('DELTAT CALCULATION IS DEPENDENT ON STIMULUS SPECIFICS! Assuming first 6 stimuli leftwards, and next 6 stimuli rightwards');
-indLeft = 1:6;
-indRight = 7:12;
-
-
-
+%loop through units
 measures = struct();
-for c = 1:length(vecChs) % should be over units
-    disp(['Computing channel ' num2str(vecChs(c)) ])
-    measures(c).intCh = vecChs(c);
-
-    vecSpikeTimesOnChannel = vecSpikeSecs(vecSpikeCh==vecChs(c));
-    measures(c).dblRateSpontaneous = computeRateSpontaneous( vecSpikeTimesOnChannel, vecStimOn,vecStimOff, sParams);
+for intNeuron = 1:numel(sSelNeuron)
+    fprintf('[%s] Computing cluster %d (%d/%d)\n',getTime,sSelNeuron(intNeuron).Cluster,intNeuron,numel(sSelNeuron));
+    measures(intNeuron).intClu = sSelNeuron(intNeuron).Cluster;
+    vecSpikeTimes = sSelNeuron(intNeuron).SpikeTimes;
+    measures(intNeuron).dblRateSpontaneous = computeRateSpontaneous(vecSpikeTimes,vecStimOn,vecStimOff,sParams);
 
     vecDuration = zeros(1,length(structEP.sAllDots.stimID));
     vecNRepeats = zeros(1,length(structEP.sAllDots.stimID));
@@ -141,28 +138,29 @@ for c = 1:length(vecChs) % should be over units
         vecDuration(i) = mean( vecStimOff(indStims) - vecStimOn(indStims));
         vecNRepeats(i) = length(indStims);
 
-        [dblZetaP,sZETA,sRate,~] = zetatest(vecSpikeTimesOnChannel,...
+        [dblZetaP,sZETA,sRate,~] = zetatest(vecSpikeTimes,...
             vecEventStarts,vecDuration(i)); % ~ is essential for correct output
 
-        measures(c).dblZetaP(i) = dblZetaP;
-        measures(c).cellT{i} = sZETA.vecSpikeT;  % spiketimes with extra 0 and end point
-        measures(c).cellSpikeT{i} = measures(c).cellT{i}(2:end-1);  % spiketimes
-        measures(c).vecNSpikes(i) = length( measures(c).cellSpikeT{i} );
+        measures(intNeuron).dblZetaP(i) = dblZetaP;
+        measures(intNeuron).cellT{i} = sZETA.vecSpikeT;  % spiketimes with extra 0 and end point
+        measures(intNeuron).cellSpikeT{i} = measures(intNeuron).cellT{i}(2:end-1);  % spiketimes
+        measures(intNeuron).vecNSpikes(i) = length( measures(intNeuron).cellSpikeT{i} );
 
         if ~isempty(sRate)
-            measures(c).cellRate{i} = sRate.vecRate;
-            measures(c).vecPeakTime(i) = sRate.dblPeakTime;
-            measures(c).vecPeakRate(i) = sRate.dblPeakRate;
+            measures(intNeuron).cellRate{i} = sRate.vecRate;
+            measures(intNeuron).vecPeakTime(i) = sRate.dblPeakTime;
+            measures(intNeuron).vecPeakRate(i) = sRate.dblPeakRate;
         else
-            measures(c).cellRate{i} = [];
-            measures(c).vecPeakTime(i) = NaN;
-            measures(c).vecPeakRate(i) = NaN;
+            measures(intNeuron).cellRate{i} = [];
+            measures(intNeuron).vecPeakTime(i) = NaN;
+            measures(intNeuron).vecPeakRate(i) = NaN;
         end
-        measures(c).vecMeanRate(i) = (length(measures(c).cellSpikeT))/vecDuration(i)/vecNRepeats(i);
+        measures(intNeuron).vecMeanRate(i) = (length(measures(intNeuron).cellSpikeT))/vecDuration(i)/vecNRepeats(i);
     end % stim i
 
     % DeltaT>0 response to stimulus in the past.
     % DeltaT<0 response to stimulus in the future.
+    %
     % Calculate DeltaT based on PeakTime
     % Define
     %     TLeft = peakTime left stimulus
@@ -180,10 +178,10 @@ for c = 1:length(vecChs) % should be over units
     %         DeltaT = (tLeft + tRight)/2 - w/(2v)
     %         x = 1/2 v (tLeft - tRight)
 
-    vecTLeft = measures(c).vecPeakTime(indLeft);
-    vecTRight = measures(c).vecPeakTime(indRight);
-    measures(c).vecPeakXRF_pix = vecSpeed_pix(indLeft) .* (vecTLeft - vecTRight) / 2;
-    measures(c).vecPeakDeltaT = (vecTLeft + vecTRight)/2  - record.intScreenWidth_pix ./ vecSpeed_pix(indLeft) / 2;
+    vecTLeft = measures(intNeuron).vecPeakTime(indLeft);
+    vecTRight = measures(intNeuron).vecPeakTime(indRight);
+    measures(intNeuron).vecPeakXRF_pix = vecSpeed_pix(indLeft) .* (vecTLeft - vecTRight) / 2;
+    measures(intNeuron).vecPeakDeltaT = (vecTLeft + vecTRight)/2  - record.intScreenWidth_pix ./ vecSpeed_pix(indLeft) / 2;
 
     % Calculate DeltaT based on all spikes
     % Assume rate(t) = rateSpontaneous + s(dir) g(t - DeltaT - tPass)
@@ -212,20 +210,20 @@ for c = 1:length(vecChs) % should be over units
 
     dblH = record.intScreenWidth_pix/2;
 
-    vecSLeft = measures(c).vecNSpikes(indLeft) - measures(c).dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
-    vecSRight = measures(c).vecNSpikes(indRight) - measures(c).dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
-    vecMLeft =   cellfun(@sum,measures(c).cellSpikeT(indLeft))  - 1/2 *  measures(c).dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
-    vecMRight = cellfun(@sum,measures(c).cellSpikeT(indRight)) - 1/2 *  measures(c).dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
+    vecSLeft = measures(intNeuron).vecNSpikes(indLeft) - measures(intNeuron).dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
+    vecSRight = measures(intNeuron).vecNSpikes(indRight) - measures(intNeuron).dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
+    vecMLeft =   cellfun(@sum,measures(intNeuron).cellSpikeT(indLeft))  - 1/2 *  measures(intNeuron).dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
+    vecMRight = cellfun(@sum,measures(intNeuron).cellSpikeT(indRight)) - 1/2 *  measures(intNeuron).dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
 
-    measures(c).vecMeanDeltaT = - dblH ./ vecSpeed_pix(indLeft)  + ...
+    measures(intNeuron).vecMeanDeltaT = - dblH ./ vecSpeed_pix(indLeft)  + ...
         (vecMLeft .* vecSRight + vecMRight .* vecSLeft) ./ (2 * vecSLeft .* vecSRight )  ;
 
-    measures(c).vecMeanXRF_pix = vecSpeed_pix(indLeft) .* ...
+    measures(intNeuron).vecMeanXRF_pix = vecSpeed_pix(indLeft) .* ...
         (vecMLeft .* vecSRight - vecMRight .* vecSLeft) ./ (2 * vecSLeft .* vecSRight ) ;
 
-    indNaN = abs(measures(c).vecMeanXRF_pix) > dblH;
-    measures(c).vecMeanXRF_pix(indNaN) =  NaN;
-    measures(c).vecMeanDeltaT(indNaN) = NaN;
+    indNaN = abs(measures(intNeuron).vecMeanXRF_pix) > dblH;
+    measures(intNeuron).vecMeanXRF_pix(indNaN) =  NaN;
+    measures(intNeuron).vecMeanDeltaT(indNaN) = NaN;
 end %c
 
 record.measures = measures;
@@ -235,7 +233,7 @@ if verbose
 end
 
 function dblRateSpontaneous = computeRateSpontaneous(vecSpikeTimes,vecStimOnSecs,vecStimOffSecs,sParams)
-%compute neuron's spontaneous/baseline rate
+%compute unit's spontaneous/baseline rate
 intCount = 0;
 dblPeriod = 0;
 for i=1:length(vecStimOffSecs)-1
