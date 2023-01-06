@@ -5,6 +5,9 @@ function  [sAllDots, sStimParams] = RH_CreateDotTrajectories(intStimSet,sStimPar
 %% standard dot parameters
 sStimParams.dblSize_deg = 3; % deg; approx. stimulus size in dva
 sStimParams.intSize_pix = round(sStimParams.dblSize_deg*sStimParams.dblPixelsPerDeg);
+if mod(sStimParams.intSize_pix,2) %so that we don't get decimal pix values
+    sStimParams.intSize_pix = sStimParams.intSize_pix-1;
+end
 sStimParams.dblColor = 0; %color (dbl, [0 1])
 sStimParams.intColor = round(mean(sStimParams.dblColor)*255);
 sStimParams.vecDotSpeeds_deg = 15; %30; %approx. speed in deg/s

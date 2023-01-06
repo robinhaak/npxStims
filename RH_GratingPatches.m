@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true;
-boolUseNI = true;
+boolUseSGL = false;
+boolUseNI = false;
 boolDebug = false;
 
 %defaults
@@ -65,7 +65,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
 	sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 	
 	%strimulus parameters
-	sStimParamsSettings.dblStimulusSize_deg = 9; %6; %deg; (approximate) size of grating patches
+	sStimParamsSettings.dblStimulusSize_deg = 6; %6; %deg; (approximate) size of grating patches
 	sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree
 	sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
 	sStimParamsSettings.dblSecsDuration = 0.5; %s
@@ -100,7 +100,6 @@ else
 end
 
 sStimParams = sStimParamsSettings;
-
 
 %% set output locations for logs
 strOutputPath = sStimParamsSettings.strOutputPath;
@@ -291,6 +290,7 @@ try
 	
 	%build structEP, stim-based logs
 	structEP = struct;
+    structEP.strExpType = sStimParams.strStimType;
 	structEP.intTrialNum = intTotalTrials;
 	structEP.TrialNumber = nan(1,structEP.intTrialNum);
 	structEP.dblStimFrameDur = dblStimFrameDur;    

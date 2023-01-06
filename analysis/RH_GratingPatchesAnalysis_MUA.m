@@ -5,6 +5,8 @@
 %you need a GPU to run this script!
 %Robin Haak, November 2022
 
+vecChs = flip([200:250]); %inputs channels to plot (1= bottom Ch)
+
 %% query user for file names & locations
 %ap.bin en ap.meta
 [strAp,strPathIm] = uigetfile('*.ap.bin','Select imec .ap.bin file','MultiSelect','off');
@@ -69,7 +71,6 @@ vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),41);
 cellColorMaps = RH_ColorMaps;
 %%
 %loop through channels
-vecChs = flip([200:250]); %inputs channels to plot (1 = bottom Ch?)
 for intCh = vecChs
     matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intCh),3);
     matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intCh),3);
