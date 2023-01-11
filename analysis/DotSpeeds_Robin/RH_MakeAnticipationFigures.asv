@@ -39,7 +39,7 @@ matZeta = cat(1, measures.dblZetaP);
 if boolZeta == true
     indZeta = any(matZeta < 0.1, 2);
 else
-    indZeta = true(23,1);
+    indZeta = ones([length(matZeta) 1]);
 end
 
 %% Make figures speed tuning

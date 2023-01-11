@@ -1,19 +1,7 @@
-function record = RH_AnalyseDotSpeeds(record,verbose)
-%RH_ANALYSEDOTSPEEDS
-%analyse responses to dot stimuli moving at different speeds, from left>right & right>left
+function record = RH_AnalyseDotRf(record,verbose)
+%RH_ANALYSEDOTRF
 %
-%    for modeling, assumes:
-%         tLeft = x / v + w /(2v) + DeltaT
-%         tRight = - x / v + w /(2v) + DeltaT
-%         where tLeft is response time when stimulus moves from left
-%         where tRight is response time when stimulus moves from right
-%         x is stimulus position (x=0 is center of the screen, w is width of the screen, positive is to the right)
-%
-%         from this follows:
-%         DeltaT = (tLeft + tRight)/2 - w/(2v)
-%         x = 1/2 v (tLeft - tRight)
-%
-%2022, Robin Haak & Alexander Heimel
+%2023, Robin Haak
 
 if nargin<2 || isempty(verbose)
     verbose = true;
@@ -21,9 +9,9 @@ end
 
 %% set parameters
 sParams = struct;
-sParams.strStimulus = 'dot_speeds';
-sParams.strArea = 'superior colliculus';
-sParams.boolUseOnlyGoodUnits = false;
+sParams.strStimulus = 'dot_grid';
+sParams.strArea = 'superior colliculus optic layer';
+sParams.boolUseOnlyGoodUnits = true;
 sParams.dblMaxAbsNonStationarity = 0.25; %indicates how unit's spikes are distbuted wihtin recording (dbl, [0 1])
 sParams.dblMaxViolations1ms = 0.25; %<1 means that unit shows a refractory period (the closer to zero, the better)
 sParams.dblSecsFromPrevStimOff = 0.1; %s, time to stay clear of off-response for calculation of spontaneous rate
@@ -92,7 +80,7 @@ record.sStimuli = sAP.cellBlock{1,indBlock};
 fprintf('[%s] Found "%s" stimulus block\n',getTime,sParams.strStimulus)
 
 %% re-calculate stimulus speeds from bounding rects
-fprintf('[%s] Re-computing stimulus speeds\n',getTime);
+fprintf('[%s] Re-computing stimulus speed(s)\n',getTime);
 for intStim = 1:record.sStimuli.sAllDots.intStimulusConditions
     vecBoundingRect = record.sStimuli.sAllDots.vecBoundingRect{intStim};
     intSpeed_ppf = abs(mean(diff(vecBoundingRect(2,:)'))); %pix/frame
@@ -110,27 +98,15 @@ for intTrial = 1:record.sStimuli.intTrialNum
     intStimID = record.sStimuli.vecStimID(intTrial);
     record.sStimuli.vecSpeed_pix(intTrial) = record.sStimuli.sAllDots.vecSpeed_pix(record.sStimuli.sAllDots.stimID==intStimID);
 end
-
-%% compute measures
-record.intScreenWidth_pix = record.sStimuli.sStimParams.intScreenWidth_pix;
-
+%%
 %for ease of use
 vecStimID = record.sStimuli.vecStimID;
 vecStimOn = record.sStimuli.vecStimOnTime;
 vecStimOff = record.sStimuli.vecStimOffTime;
-vecSpeed_pix = record.sStimuli.vecSpeed_pix;
-
-%DeltaT calculation depends on stimulus specifics, check how they are organized
-%0= rightwards, 180= leftwards
-indRight = record.sStimuli.sAllDots.stimID(record.sStimuli.sAllDots.vecDirection==0);
-indLeft = record.sStimuli.sAllDots.stimID(record.sStimuli.sAllDots.vecDirection==180);
-if sum(diff(abs(record.sStimuli.sAllDots.vecSpeed_pix(indLeft)))<0)>0 || sum(diff(abs(record.sStimuli.sAllDots.vecSpeed_pix(indRight)))<0)>0
-    error('Order of vecSpeed_pix in sAllDots is weird! Please check');
-end
 
 %loop through clusters
 measures = struct();
-for intNeuron = 1:numel(sSelNeuron)
+for intNeuron = 1:10 %numel(sSelNeuron)
     fprintf('[%s] Computing cluster %d (%d/%d)\n',getTime,sSelNeuron(intNeuron).Cluster,intNeuron,numel(sSelNeuron));
     measures(intNeuron).intClu = sSelNeuron(intNeuron).Cluster;
     vecSpikeTimes = sSelNeuron(intNeuron).SpikeTimes;
@@ -163,89 +139,14 @@ for intNeuron = 1:numel(sSelNeuron)
             measures(intNeuron).vecPeakTime(intStim) = NaN;
             measures(intNeuron).vecPeakRate(intStim) = NaN;
         end
-        measures(intNeuron).vecMeanRate(intStim) = (length(measures(intNeuron).cellSpikeT))/vecDuration(intStim)/vecNRepeats(intStim);
-    end % stim i
-
-    % DeltaT>0 response to stimulus in the past.
-    % DeltaT<0 response to stimulus in the future.
-    %
-    % Calculate DeltaT based on PeakTime
-    % Define
-    %     TLeft = peakTime left stimulus
-    %     TRight = peakTime right stimulus
-    %
-    %     xRF = x0 + v tPass
-    %
-    %         tLeft = (x - x0Left ) / v + DeltaT
-    %         tRight = - (x - x0Right ) / v + DeltaT
-    %         where tLeft is response time when stimulus moves from left
-    %         where tRight is response time when stimulus moves from right
-    %         x is stimulus position (x=0 is center of the screen, w is width of the screen, positive is to the right)
-    %         for leftward stimulus, x0 = w/2 - stimulus_radius
-    %
-    %         from this follows:
-    %         DeltaT = (tLeft + tRight)/2 - w/(2v)
-    %         x = 1/2 v (tLeft - tRight)
-
-    vecTLeft = measures(intNeuron).vecPeakTime(indLeft);
-    vecTRight = measures(intNeuron).vecPeakTime(indRight);
-
-    dblStimulusRadius_pix = abs(record.sStimuli.sAllDots.vecBoundingRect{1,1}(1,1)) / 2;
-    dblStartLeft_pix = -record.intScreenWidth_pix / 2 - dblStimulusRadius_pix  ;
-    dblStartRight_pix = record.intScreenWidth_pix / 2 + dblStimulusRadius_pix ;
-
-    measures(intNeuron).vecPeakXRF_pix = vecSpeed_pix(indLeft) .* (vecTLeft - vecTRight) / 2;
-    measures(intNeuron).vecPeakDeltaT = (vecTLeft + vecTRight)/2  - (dblStartRight_pix - dblStartLeft_pix) / 2; %
-
-
-
-    % Calculate DeltaT based on all spikes
-    % Assume rate(t) = rateSpontaneous + s(dir) g(t - DeltaT - tPass)
-    %     with \int_-\inf^+\inf g(t) dt = 1,
-    %     support only between (-DeltaT-tPass) and (T-DeltaT-tPass)
-    %     and  \int_-\inf^+\inf t g(t) dt = 0 (satisfied if g is symmetric around 0)
-    %     and tPass = (xRF - x0)/v, where xRF is RF position, x0 is start
-    %     of stimulus and v is speed.
-    % then s(dir) = nSpikes - T rateSpontaneous,
-    %     with T time interval over which nSpikes is computed
-    % and an integration with t'=t+DeltaT-tPass shows
-    %     Expectation( \sum_i t(i) ) = 1/2 T^2 rateSpontaneous + s(dir)(DeltaT + tpass)
-    %
-    % Now define:
-    %   SLeft = nSpikesLeft - T rateSpontaneous
-    %   SRight = nSpikesRight - T rateSpontaneous
-    %   MLeft = E(\sum_i t(i))_left -1/2 T^2 rateSpontaneous
-    %   MRight = E(\sum_i t(i))_right -1/2 T^2 rateSpontaneous
-    % Then:
-    %   DeltaT = -h/v + (MLeft SRight + MRight SLeft) / (2 SLeft SRight)
-    %   xRF = v (MLeft SRight - MRight SLeft) / (2 SLeft SRight)
-    %       with h = screenWidth/2 and xRF relative to center
-    %
-    %   when only spikes are occuring at tLeft and tRight, this simplifies
-    %   to earlier expression.
-
-    dblH = record.intScreenWidth_pix/2;
-
-    vecSLeft = measures(intNeuron).vecNSpikes(indLeft) - measures(intNeuron).dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
-    vecSRight = measures(intNeuron).vecNSpikes(indRight) - measures(intNeuron).dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
-    vecMLeft =   cellfun(@sum,measures(intNeuron).cellSpikeT(indLeft))  - 1/2 *  measures(intNeuron).dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
-    vecMRight = cellfun(@sum,measures(intNeuron).cellSpikeT(indRight)) - 1/2 *  measures(intNeuron).dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
-
-    measures(intNeuron).vecMeanDeltaT = - dblH ./ vecSpeed_pix(indLeft)  + ...
-        (vecMLeft .* vecSRight + vecMRight .* vecSLeft) ./ (2 * vecSLeft .* vecSRight )  ;
-
-    measures(intNeuron).vecMeanXRF_pix = vecSpeed_pix(indLeft) .* ...
-        (vecMLeft .* vecSRight - vecMRight .* vecSLeft) ./ (2 * vecSLeft .* vecSRight ) ;
-
-    indNaN = abs(measures(intNeuron).vecMeanXRF_pix) > dblH;
-    measures(intNeuron).vecMeanXRF_pix(indNaN) =  NaN;
-    measures(intNeuron).vecMeanDeltaT(indNaN) = NaN;
-end 
-
+        measures(intNeuron).vecMeanRate(intStim) = measures(intNeuron).vecNSpikes(intStim)/vecDuration(intStim)/vecNRepeats(intStim);
+%         measures(intNeuron).vecMeanRate(intStim) = (length(measures(intNeuron).cellSpikeT))/vecDuration(intStim)/vecNRepeats(intStim);
+    end % intStim
+end
 record.measures = measures;
 
 if verbose
-    RH_ResultsDotSpeeds(record);
+    RH_ResultsDotRf(record);
 end
 
 function dblRateSpontaneous = computeRateSpontaneous(vecSpikeTimes,vecStimOnSecs,vecStimOffSecs,sParams)
@@ -265,3 +166,11 @@ end
 if intCount<10
     fprintf('Less than 10 spikes to compute spontaneous rate!\n')
 end
+
+
+
+
+
+
+
+

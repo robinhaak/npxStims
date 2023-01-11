@@ -12,35 +12,45 @@ evalin('base','global measures');
 set(groot, 'defaultAxesTickDir', 'out');
 set(groot,  'defaultAxesFontSize', 10);
 
-vecSpeed_pix = record.sStimuli.sAllDots.vecSpeed_pix;
-
+vecSpeed_pix = record.sStimuli.vecSpeed_pix;
+%0= rightwards (starting LEFT), 180= leftwards (starting RIGHT)
+indLeft = record.sStimuli.stimID(record.sStimuli.vecDirection==0);
+indRight = record.sStimuli.stimID(record.sStimuli.vecDirection==180);
+if sum(diff(abs(record.sStimuli.vecSpeed_pix(indLeft)))<0)>0 || sum(diff(abs(record.sStimuli.vecSpeed_pix(indRight)))<0)>0
+    error('Order of vecSpeed_pix in record.sStimuli is weird! Please check');
+end
 for m = 1:length(record.measures)
     measures = record.measures(m);
-   
-    if measures.dblZetaP(1)>0.1 % no response to slowest stimulus
+
+%     if measures.dblZetaP(1)>0.1 % no response to slowest stimulus % also add other direction?
+%         continue
+%     end
+
+    if ~any(measures.dblZetaP < 0.1)
         continue
     end
         
     figure('Name',['Cluster. ' num2str(measures.intClu)],'NumberTitle','off');
     subplot(3,2,1)
-    plot(record.sStimuli.sAllDots.vecSpeed_deg(1:6),measures.vecPeakRate(1:6),'.-r');
-    hold on;
-    plot(record.sStimuli.sAllDots.vecSpeed_deg(7:12),measures.vecPeakRate(7:12),'.-b');
+    plot(record.sStimuli.vecSpeed_deg(indRight),measures.vecPeakRate(indRight),'.-r');
+    hold on; %peak rate vs speed
+    plot(record.sStimuli.vecSpeed_deg(indLeft),measures.vecPeakRate(indLeft),'.-b');
     set(gca,'xscale','log')
     xlabel('Speed (dps)');
     ylabel('Peak rate (sp/s)');
-    legend('Left','Right','Location','Best');
+    legend('Right','Left','Location','Best');
+    %fixfig;
 
-    
-    subplot(3,2,2) % Peak time vs inverse speed
-    vecInvSpeed_pix = 1./record.sStimuli.sAllDots.vecSpeed_pix;
-    plot(vecInvSpeed_pix(1:6),measures.vecPeakTime(1:6),'.-r');
+    subplot(3,2,2) %peak time vs inverse speed
+    vecInvSpeed_pix = 1./record.sStimuli.vecSpeed_pix;
+    plot(vecInvSpeed_pix(indRight),measures.vecPeakTime(indRight),'.-r');
     hold on;
-    plot(vecInvSpeed_pix(7:12),measures.vecPeakTime(7:12),'.-b');
+    plot(vecInvSpeed_pix(indLeft),measures.vecPeakTime(indLeft),'.-b');
     xlabel('1/Speed (spp)');
     ylabel('Peak time (s)');
+    %fixfig;
    
-    subplot(3,2,3) % Rate vs Stimulus position 
+    subplot(3,2,3) %rate vs Stimulus position 
     ind1 = 2;
     ind2 = 8;
     vecStimPos_pix = -record.intScreenWidth_pix/2 + measures.cellT{ind1}*vecSpeed_pix(ind1);
@@ -50,9 +60,10 @@ for m = 1:length(record.measures)
     plot(vecStimPos_pix,measures.cellRate{ind2},'-b')
     xlabel('Stim position (pix)');
     ylabel(['Rate stim ' num2str(ind1) ' (sp/s)']);
-    %legend('Left','Right');
+    %legend('Right','Left');
+    %fixfig;
     
-    subplot(3,2,4) % Rate vs Stimulus position 
+    subplot(3,2,4) %rate vs Stimulus position 
     ind1 = 5;
     ind2 = 11;
     vecStimPos_pix = -record.intScreenWidth_pix/2 + measures.cellT{ind1}*vecSpeed_pix(ind1);
@@ -63,24 +74,27 @@ for m = 1:length(record.measures)
     xlabel('Stim position (pix)');
     ylabel(['Rate stim ' num2str(ind1) ' (sp/s)']);
     %legend('Left','Right');
+    %fixfig;
     
-    subplot(3,2,5);
+    subplot(3,2,5); %RF location vs inverse speed
     hold on
-    plot(vecInvSpeed_pix(1:6),measures.vecPeakXRF_pix,'.-k');
-    plot(vecInvSpeed_pix(1:6),measures.vecMeanXRF_pix,'.--k');
+    plot(vecInvSpeed_pix(indRight),measures.vecPeakXRF_pix,'.-k');
+    plot(vecInvSpeed_pix(indRight),measures.vecMeanXRF_pix,'.--k');
     ylim([-0.5 0.5]*1920)
     xlabel('1/Speed (spp)');
     ylabel('x (pix)');
     legend('Peak','Mean','Location','Best');
-    
-    subplot(3,2,6);
+    %fixfig;
+
+    subplot(3,2,6); %DeltaT vs inverse speed
     hold on
-    plot(vecInvSpeed_pix(1:6),measures.vecPeakDeltaT,'.-k');
-    plot(vecInvSpeed_pix(1:6),measures.vecMeanDeltaT,'.--k');
-    %plot(vecInvSpeed_pix(1:6),measures.vecDeltaTAllSpikes,'.--k');
+    plot(vecInvSpeed_pix(indRight),measures.vecPeakDeltaT,'.-k');
+    plot(vecInvSpeed_pix(indRight),measures.vecMeanDeltaT,'.--k');
+    %plot(vecInvSpeed_pix(indRight),measures.vecDeltaTAllSpikes,'.--k');
     xlabel('1/Speed (spp)');
     ylabel('\Deltat (s)');
     %legend('Peak','All spikes','Location','Best');
+    %fixfig;
 
 end % m
 
