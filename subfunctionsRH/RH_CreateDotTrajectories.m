@@ -14,7 +14,7 @@ sStimParams.vecDotSpeeds_deg = 15; %30; %approx. speed in deg/s
 sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
 sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
 sStimParams.vecDirections = [0 180]; %0 is rightward & 90 is downward motion, for now only 0 and 180 are available (with the exception of 'dot_grid')
-sStimParams.intReps = 15;
+sStimParams.intReps = 5;
 
 if intStimSet == 1
     %% (1) 'dot_grid' - dots moving along multiple horizontal & vertical trajectories
@@ -23,7 +23,7 @@ if intStimSet == 1
     end
 	%set-specific parameters
 	sStimParams.intReps = 10;
-	sStimParams.vecDotSpeeds_deg = 60 %30; %approx. speed in deg/s
+	sStimParams.vecDotSpeeds_deg =  30; %approx. speed in deg/s
 	sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
 	sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
 	sStimParams.vecSecsPostBlank = [0.25 0.25];

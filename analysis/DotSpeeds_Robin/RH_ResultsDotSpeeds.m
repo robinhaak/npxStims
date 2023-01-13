@@ -91,8 +91,10 @@ for m = 1:length(record.measures)
     plot(vecInvSpeed_pix(indRight),measures.vecPeakDeltaT,'.-k');
     plot(vecInvSpeed_pix(indRight),measures.vecMeanDeltaT,'.--k');
     %plot(vecInvSpeed_pix(indRight),measures.vecDeltaTAllSpikes,'.--k');
+    yline(0,'r');
     xlabel('1/Speed (spp)');
     ylabel('\Deltat (s)');
+    ylim([-10 10]);
     %legend('Peak','All spikes','Location','Best');
     %fixfig;
 

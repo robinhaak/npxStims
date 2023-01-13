@@ -39,7 +39,7 @@ matZeta = cat(1, measures.dblZetaP);
 if boolZeta == true
     indZeta = any(matZeta < 0.1, 2);
 else
-    indZeta = true(23,1);
+    indZeta = true(height(matZeta),1);
 end
 
 %% Make figures speed tuning
@@ -60,7 +60,7 @@ xlabel('Speed (deg/s)');
 title('Population');
 legend('Left','Right','Location','Best');
 set(gca,'xscale','log');
-%fixfig;
+fixfig;
 
 
 %% Make figure deltaT versus speed
@@ -82,41 +82,41 @@ matVal = matVal(indZeta, :);
 p2 = plot(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),'.--k'     );
 errorbar(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),sem(matVal(:,ind),1),'.k');
 
+yline(0,'r'); %zero 
+
 legend([p1 p2], 'Peak','Mean','Location','Best');
 
 ylabel('DeltaT (s)');
 xlabel('Speed (deg/s)');
 title('Population');
 set(gca,'xscale','log');
-%fixfig;
+fixfig;
 
 %% Make figure 
-record = dbj(1);
-figure;
-hold on;
-
-fld = 'vecPeakDeltaT';
-ind = find(record.sStimuli.vecDirection==0);
-matVal = cat(1,record.measures.(fld));
-matVal = matVal(indZeta, :).* record.sStimuli.vecSpeed_deg(ind);
-p1 = plot(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),'.-k'     );
-errorbar(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),sem(matVal(:,ind),1),'.k');
-
-fld = 'vecMeanDeltaT';
-ind = find(record.sStimuli.vecDirection==0);
-matVal = cat(1,record.measures.(fld));
-matVal = matVal(indZeta, :).* record.sStimuli.vecSpeed_deg(ind);
-p2 = plot(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),'.--k'     );
-errorbar(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),sem(matVal(:,ind),1),'.k');
-
-legend([p1 p2], 'Peak','Mean','Location','Best');
-
-ylabel('DeltaT*speed (deg)');
-xlabel('Speed (deg/s)');
-title('Population');
-set(gca,'xscale','log');
-
-
+% record = dbj(1);
+% figure;
+% hold on;
+% 
+% fld = 'vecPeakDeltaT';
+% ind = find(record.sStimuli.vecDirection==0);
+% matVal = cat(1,record.measures.(fld));
+% matVal = matVal(indZeta, :).* record.sStimuli.vecSpeed_deg(ind);
+% p1 = plot(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),'.-k'     );
+% errorbar(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),sem(matVal(:,ind),1),'.k');
+% 
+% fld = 'vecMeanDeltaT';
+% ind = find(record.sStimuli.vecDirection==0);
+% matVal = cat(1,record.measures.(fld));
+% matVal = matVal(indZeta, :).* record.sStimuli.vecSpeed_deg(ind);
+% p2 = plot(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),'.--k'     );
+% errorbar(record.sStimuli.vecSpeed_deg(ind),mean(matVal(:,ind),1,'OmitNan'),sem(matVal(:,ind),1),'.k');
+% 
+% legend([p1 p2], 'Peak','Mean','Location','Best');
+% 
+% ylabel('DeltaT x speed (deg)');
+% xlabel('Speed (deg/s)');
+% title('Population');
+% set(gca,'xscale','log');
 
 %% Make figure deltaT vs depth, per speed
 record = dbj(1);
@@ -136,7 +136,7 @@ legend(num2str(record.sStimuli.vecSpeed_deg(ind)','%.1f'),'Location', 'Best');
 ylabel('Depth (um)');
 xlabel('DeltaT peak (s)');
 set(gca,'Ydir','reverse');
-%fixfig;
+fixfig;
 
 figure;
 hold on;
@@ -152,7 +152,7 @@ legend(num2str(record.sStimuli.vecSpeed_deg(ind)','%.1f'),'Location', 'Best');
 ylabel('Depth (um)');
 xlabel('DeltaT mean (s)');
 set(gca,'Ydir','reverse');
-% fixfig;
+fixfig;
 
 
 
