@@ -1,7 +1,7 @@
 %RH_GRATINGSPATCHES
 %Display patches of gratings, drifting in the cardinal directions to map receptive fields
 %
-%Robin Haak, last update: 23 November 2022
+%Robin Haak, last update: 17 Jnauary 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = false;
-boolUseNI = false;
+boolUseSGL = true;
+boolUseNI = true;
 boolDebug = false;
 
 %defaults
@@ -64,14 +64,14 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.dblBackground = 0.5; %background intensity (dbl, [0 1])
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 
-    %strimulus parameters
-    sStimParamsSettings.dblStimulusSize_deg = 6; %6; %deg; (approximate) size of grating patches
+    %stimulus parameters
+    sStimParamsSettings.dblStimulusSize_deg = 6; %9; %deg; (approximate) size of grating patches
     sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree
     sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
     sStimParamsSettings.dblSecsDuration = 0.5; %s
     sStimParamsSettings.dblSecsInitialBlank = 5; %s
     sStimParamsSettings.dblSecsPreBlank = 0.25; %s
-    sStimParamsSettings.dblSecsPostBlank = 0.5; %s
+    sStimParamsSettings.dblSecsPostBlank = 0.25; %0.5 %s
     sStimParamsSettings.dblSecsEndBlank = 5; %s
     sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of orientation)
     sStimParamsSettings.vecDirections = [0 90 180 270]; %drifting directions, fixed

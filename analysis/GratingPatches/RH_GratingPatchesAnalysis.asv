@@ -81,7 +81,7 @@ vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),21);
 cellColorMaps = RH_ColorMaps;
 %%
 %loop through channels
-for intClu = 172:314 %numel(sCluster)
+for intClu = 209:285 %numel(sCluster)
     matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intClu),2);
     matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intClu),2);
     figure;hold on;title(['Cluster: ' num2str(intClu)]);
@@ -90,8 +90,7 @@ for intClu = 172:314 %numel(sCluster)
 %     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});cb=colorbar;cb.Label.String='spks/s';
 %     fixfig;
 %     subplot(2,1,2);
-   imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
-    %imagesc(vecX_pix,vecY_pix,matAvgRespAllBlSub(:,:,intClu));
+    imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;cb=colorbar;cb.Label.String='spks/s';
     fixfig;
    % pause

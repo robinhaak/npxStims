@@ -14,7 +14,7 @@ sStimParams.vecDotSpeeds_deg = 15; %30; %approx. speed in deg/s
 sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
 sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
 sStimParams.vecDirections = [0 180]; %0 is rightward & 90 is downward motion, for now only 0 and 180 are available (with the exception of 'dot_grid')
-sStimParams.intReps = 5;
+sStimParams.intReps = 15;
 
 if intStimSet == 1
     %% (1) 'dot_grid' - dots moving along multiple horizontal & vertical trajectories
@@ -31,28 +31,28 @@ if intStimSet == 1
     %get number of trajectories
     sStimParams.intTrajSpacing_pix = round(3*sStimParams.dblPixelsPerDeg); %spacing is ~6 dva (as in Beltramo && Scanziani, Science 2019)
     intTrajX = round((sStimParams.intScreenWidth_pix-sStimParams.intTrajSpacing_pix)/sStimParams.intTrajSpacing_pix)*2; %2 directions
-    %intTrajY = round((sStimParams.intScreenHeight_pix-sStimParams.intTrajSpacing_pix)/sStimParams.intTrajSpacing_pix)*2;
+    intTrajY = round((sStimParams.intScreenHeight_pix-sStimParams.intTrajSpacing_pix)/sStimParams.intTrajSpacing_pix)*2;
 
     %get x (for vertical movement) and y (for horizontal movement) coordinates, center grid on screen
     vecCoordsX = (0:intTrajX/2-1)*sStimParams.intTrajSpacing_pix; vecCoordsX = vecCoordsX+(sStimParams.intScreenWidth_pix-max(vecCoordsX))/2;
-    %vecCoordsY = (0:intTrajY/2-1)*sStimParams.intTrajSpacing_pix; vecCoordsY = vecCoordsY+(sStimParams.intScreenHeight_pix-max(vecCoordsY))/2;
+    vecCoordsY = (0:intTrajY/2-1)*sStimParams.intTrajSpacing_pix; vecCoordsY = vecCoordsY+(sStimParams.intScreenHeight_pix-max(vecCoordsY))/2;
 
     %create 'sAllDots' struct containing parameters for each trajectory
     sAllDots = struct;
     sAllDots.strStimSet = 'dot_grid';
     intStimIdx = 1;
-%     for intStim = 1:intTrajY/2 %left-right (0)
-%         sAllDots.stimID(intStimIdx) = intStimIdx;
-%         vecBoundingRect = [];
-%         vecBoundingRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
-%         vecBoundingRect(2,:) = repmat(vecCoordsY(intStim)-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-%         vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
-%         vecBoundingRect(4,:) = repmat(vecCoordsY(intStim)+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-%         sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
-%         sAllDots.vecDirection(intStimIdx) = 0;
-%         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
-%         intStimIdx = intStimIdx+1;
-%     end
+    for intStim = 1:intTrajY/2 %left-right (0)
+        sAllDots.stimID(intStimIdx) = intStimIdx;
+        vecBoundingRect = [];
+        vecBoundingRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
+        vecBoundingRect(2,:) = repmat(vecCoordsY(intStim)-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
+        vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
+        vecBoundingRect(4,:) = repmat(vecCoordsY(intStim)+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
+        sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
+        sAllDots.vecDirection(intStimIdx) = 0;
+        sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
+        intStimIdx = intStimIdx+1;
+    end
     for intStim = 1:intTrajX/2 %up-down (90)
         sAllDots.stimID(intStimIdx) = intStimIdx;
         vecBoundingRect = [];
@@ -65,18 +65,18 @@ if intStimSet == 1
         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
         intStimIdx = intStimIdx+1;
     end
-%     for intStim = 1:intTrajY/2 %right-left (180)
-%         sAllDots.stimID(intStimIdx) = intStimIdx;
-%         vecBoundingRect = [];
-%         vecBoundingRect(1,:) = -(-sStimParams.intScreenWidth_pix:sStimParams.vecDotSpeeds_ppf:(0+sStimParams.intSize_pix+sStimParams.vecDotSpeeds_ppf));
-%         vecBoundingRect(2,:) = repmat(vecCoordsY(intStim)-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-%         vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
-%         vecBoundingRect(4,:) = repmat(vecCoordsY(intStim)+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
-%         sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
-%         sAllDots.vecDirection(intStimIdx) = 180;
-%         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
-%         intStimIdx = intStimIdx+1;
-%     end
+    for intStim = 1:intTrajY/2 %right-left (180)
+        sAllDots.stimID(intStimIdx) = intStimIdx;
+        vecBoundingRect = [];
+        vecBoundingRect(1,:) = -(-sStimParams.intScreenWidth_pix:sStimParams.vecDotSpeeds_ppf:(0+sStimParams.intSize_pix+sStimParams.vecDotSpeeds_ppf));
+        vecBoundingRect(2,:) = repmat(vecCoordsY(intStim)-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
+        vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
+        vecBoundingRect(4,:) = repmat(vecCoordsY(intStim)+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
+        sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
+        sAllDots.vecDirection(intStimIdx) = 180;
+        sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
+        intStimIdx = intStimIdx+1;
+    end
     for intStim = 1:intTrajX/2 %down-up (270)
         sAllDots.stimID(intStimIdx) = intStimIdx;
         vecBoundingRect = [];
@@ -102,7 +102,7 @@ elseif intStimSet == 2
     end
 
     %input desired stimulus conditions
-    vecStimConditions = {'classic','appear','disappear','offset'}; %available: 'classic', 'appear', 'disappear', 'shuffle', 'offset'
+    vecStimConditions = {'classic','appear','disappear'}; %available: 'classic', 'appear', 'disappear', 'shuffle', 'offset'
 
     %create base trajectories
     if sum(sStimParams.vecDirections==0)>0 %left-right (0)
@@ -263,6 +263,7 @@ elseif intStimSet == 3
     if sum(sStimParams.vecDotSpeeds_ppf == 0) > 0
         error('vecDotSpeeds_ppf cannot be 0')
     end
+    sStimParams.intReps = 25;
 
     %get number of trajectories
     intTrajY = sum(sStimParams.vecDirections==[0 180])*length(sStimParams.vecDotSpeeds_ppf);
