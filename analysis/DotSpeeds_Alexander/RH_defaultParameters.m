@@ -5,8 +5,7 @@ function sParams = rh_defaultParameters()
 %
 % 2023, Alexander Heimel, Robin Haak
 
-strPath = fullfile(fileparts(mfilename('fullpath')),'..','..');
-sParams.strOutputPath = strPath; % should be loaded from parameter file instead
+sParams.strOutputPath = 'Set true path here or set strOutputPath in processparams_local';
 
 sParams.separationFromPrevStimOff = 0.1; % s, time to stay clear of off-response for calculation of spontaneous rate
 sParams.boolSmooth = true;
@@ -15,3 +14,8 @@ sParams.boolUseResponseOnset = true;
 sParams.boolFitGaussian = false; % compute onset times based on Gaussian fit
 sParams.dblThresholdResponsiveZetaP = 1;%0.05;
 
+if exist('processparams_local.m','file')
+    sOldParams = sParams;
+    sParams = processparams_local( sParams );
+    changed_process_parameters(sParams,sOldParams);
+end

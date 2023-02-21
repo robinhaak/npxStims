@@ -30,6 +30,37 @@ if contains('sCluster',{sVars.name})
     % single unit data
     load(strLog,'sCluster','structEP','sSynthData'); %rm sSynthData later
 
+    cellExpType = cellfun(@(x) x.structEP.strExpType, sSynthData.cellStim, 'UniformOutput', false);
+    ind = find(contains(cellExpType,record.stimulus));
+    if isempty(ind)
+        logmsg(['Could not find stimulus ' record.stimulus ' in '  strLog]);
+        return
+    end
+    if length(ind)>1
+        logmsg(['More than one stimulus ' record.stimulus ' in '  strLog]);
+        return
+    end
+    
+    structEP = sSynthData.cellStim{ind}.structEP; 
+    
+    % structEP.vecTrialStimOnSecs: 5.25, +1, +1, +1, ...
+    % sCluster(1).SpikeTimes: 0.0210, +0.0515, +0.0665, ... 
+    % structEP.vecStimOnTime : 3562.873, +1.0001, +1.00003, ... synced to IMEC spiketimes? 
+    % structEP.ActOnNI: 3682.12, +0.9976, +1.0022, +0.9818, % from NI?
+    % structEP.T0 = 119.285  (roughly difference between top 2), but the
+    %     difference between vecStimOnTime and ActOnNI is not completely
+    %     constance, sometimes a 30ms difference
+    % structEP.ActOnSecs: 691753.585, +1.0003, +1.0018, ... from PTB?
+    % structEP.ActStartSecs: 691753.314, +1.0001, +0.9999, ... from PTB?
+
+    
+    
+    vecStimOnTime = structEP.vecStimOnTime;
+    vecStimOffTime = structEP.vecStimOffTime;
+
+%    vecStimOnTime = structEP.ActOnNI;
+%    vecStimOffTime = structEP.ActOffNI;
+    
     if isempty(vecClustersToAnalyze)
         vecClustersToAnalyze = unique([sCluster.IdxClust]);
     end
@@ -42,8 +73,7 @@ if contains('sCluster',{sVars.name})
         end
     end
 
-    vecStimOnTime = structEP.vecStimOnTime;
-    vecStimOffTime = structEP.vecStimOffTime;
+    
     %     sMeta = sSynthData.sMetaNI;
     %     dblStartT = str2double(sMeta.firstSample) / str2double(sMeta.niSampRate);
     %     vecStimOnTime = structEP.ActOnNI - dblStartT;
@@ -51,7 +81,7 @@ if contains('sCluster',{sVars.name})
 
 
 else
-    % unsorted channels
+    % Unsorted channels
     load(strLog,'structEP');
     load(fullfile(strSessionPath,'spikes.mat'),'vecSpikeCh','vecSpikeSecs');
 

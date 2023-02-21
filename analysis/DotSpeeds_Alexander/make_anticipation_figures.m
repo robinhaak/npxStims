@@ -6,8 +6,7 @@
 
 
 %% Load database
-strPath = fullfile(fileparts(which('make_anticipation_figures')),'..','..');
-sParams.strOutputPath = strPath; % should be loaded from parameter file instead
+sParams = RH_defaultParameters();
 dbfilename = fullfile(sParams.strOutputPath,'Anticipation','Data_analysis','db_anticipation.mat');
 load(dbfilename,'db')
 logmsg('Loaded datebase as ''db''. Access with experiment_db(db).')
