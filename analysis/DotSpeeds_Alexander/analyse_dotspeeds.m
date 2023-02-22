@@ -36,6 +36,7 @@ end
 
 sParams = RH_defaultParameters();
 
+record = RH_analyse_synchronization(record,verbose);
 
 %% Load data
 % check which channels or clusters to analyse
@@ -52,6 +53,23 @@ sVars = whos('-file',strLog);
 if contains('sCluster',{sVars.name})
     % single unit data
     load(strLog,'sCluster','structEP','sSynthData'); %rm sSynthData later
+    
+
+    cellExpType = cellfun(@(x) x.structEP.strExpType, sSynthData.cellStim, 'UniformOutput', false);
+    ind = find(contains(cellExpType,record.stimulus));
+    if isempty(ind)
+        logmsg(['Could not find stimulus ' record.stimulus ' in '  strLog]);
+        return
+    end
+    if length(ind)>1
+        logmsg(['More than one stimulus ' record.stimulus ' in '  strLog]);
+        logmsg('Using first stimulus');
+        ind = 1;
+    end
+    
+    structEP = sSynthData.cellStim{ind}.structEP;
+    sCluster = sSynthData.sCluster;
+
     
     if isempty(vecClustersToAnalyze)
         vecClustersToAnalyze = unique([sCluster.IdxClust]);
@@ -153,6 +171,8 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         
         [dblZetaP,sZETA,sRate,~] = zetatest(vecSpikeTimesOfCluster{c},...
             vecEventStarts,vecDuration(i)+dblIntertrialInterval); % ~ is essential for correct output
+       
+        
         
         measure.vecZetaP(i) = dblZetaP;
         measure.cellSpikeT{i} =sZETA.vecSpikeT(2:end-1);  % spiketimes, ZETA has padded extra points at beginning and end
@@ -164,57 +184,109 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.vecPeakRate(i) = NaN;
         
         if sParams.boolSmooth && ~isempty(vecSpikeTimesOfCluster{c})
-            dblBase = 1.5;
-            intSmoothSd = 2;
-            dblMinScale = round(log(1/10) / log(dblBase));
-            [sRate.vecTime,sRate.vecRate,~] = getIFR(vecSpikeTimesOfCluster{c},vecEventStarts,vecDuration(i)+dblIntertrialInterval,intSmoothSd,dblMinScale,dblBase,false);
-            if ~isempty(sRate.vecTime)
-                [sRate.dblPeakRate,ind] = max(sRate.vecRate);
-                sRate.dblPeakTime = sRate.vecTime(ind);
-            else
-                sRate = [];
-            end
+            
+            
+                        dblBase = 1.5;
+                        intSmoothSd = 2;
+                        dblMinScale = round(log(1/10) / log(dblBase));
+                        [sRate.vecT,sRate.vecRate,~] = getIFR(vecSpikeTimesOfCluster{c},vecEventStarts,vecDuration(i)+dblIntertrialInterval,intSmoothSd,dblMinScale,dblBase,false);
+                        if ~isempty(sRate.vecT)
+                            [sRate.dblPeakRate,ind] = max(sRate.vecRate);
+                            sRate.dblPeakTime = sRate.vecT(ind);
+                        else
+                            sRate = [];
+                        end
         end
         
         if ~isempty(sRate)
             measure.cellRate{i} = sRate.vecRate;
-            measure.cellTime{i} = sRate.vecTime;
+            measure.cellTime{i} = sRate.vecT;
             measure.vecPeakTime(i) = sRate.dblPeakTime;
             measure.vecPeakRate(i) = sRate.dblPeakRate;
             
             if sParams.boolFitGaussian
-                % fit gaussian to response
-                strGaussEqn = 'a*exp(-((x-b)/sigma)^2/2)';
-                d = measure.dblRateSpontaneous;
-                a = sRate.dblPeakRate-d;
-                b = sRate.dblPeakTime;
-                sigma = 0.2;  % notice: half sigma
-                startPoints = [a b sigma];
-                f = fit(sRate.vecTime,sRate.vecRate-d,strGaussEqn,'Start', startPoints);
-                ind = find(sRate.vecTime>sRate.dblPeakTime+f.sigma,1);
-                if ~isempty(ind) && ind>2
-                    % now refit around the lefthand side of the peak
-                    startPoints = [f.a f.b f.sigma*1.1];
-                    f = fit(sRate.vecTime(1:ind),sRate.vecRate(1:ind)-d,strGaussEqn,'Start', startPoints);
+                logmsg(['Fitting ' num2str(i) ' of ' num2str(length(structEP.sAllDots.stimID))]);
+                
+                % fit erf to cumulative response
+                intNumSpikes = length(sZETA.vecSpikeT);
+                dblMaxTime = sZETA.vecSpikeT(end);
+                x = sZETA.vecSpikeT;
+                y = (1:intNumSpikes)';
+                
+                dblSpont = measure.dblRateSpontaneous*vecNRepeats(i);
+                dblPeakTime = sRate.dblPeakTime;
+                if isnan(dblPeakTime)
+                    dblPeakTime = dblMaxTime/2;
                 end
-                measure.vecOnsetTime(i) = f.b - f.sigma*2;
-                if 1
+                
+                P0 = [ 0     100        dblPeakTime   1          dblSpont];
+                lb = [-10       0          0                  0                 0];
+                ub = [ 10  intNumSpikes   dblMaxTime      dblMaxTime         3*dblSpont+5*vecNRepeats(i)];
+                model = @(P,x) P(1) + P(5)*x + P(2)*0.5*(1+erf( (x-P(3))/P(4))) ;
+                try
+                    opt = optimoptions('lsqcurvefit');
+                    opt.Display = 'none';
+                    Pfit = lsqcurvefit(model,P0,x,y,lb,ub,opt);
+                catch me
+                    me.message
+                    keyboard
+                end
+                measure.vecPeakTime(i) = Pfit(3);
+                measure.vecOnsetTime(i) = Pfit(3) - 2*Pfit(4);
+                %                 logmsg(['Erf fit peak time = '  num2str(measure.vecPeakTime(i))]);
+                %                 logmsg(['Erf fit onset time = '  num2str(measure.vecOnsetTime(i))]);
+                if 0
                     figure;
-                    plot(sRate.vecTime,sRate.vecRate,'k-');
-                    hold on
-                    plot(sRate.vecTime, d+f.a*exp(-((sRate.vecTime-f.b)/f.sigma).^2))
-                    plot(measure.vecOnsetTime(i),measure.dblRateSpontaneous,'o');
-                end
+                    plot(x,y,'.')
+                    hold on;
+                    modelpred = model(Pfit,x);
+                    plot(x,modelpred,'r-');
+                    plot(measure.vecPeakTime(i)*[1 1],ylim,'-b');
+                    plot(measure.vecOnsetTime(i)*[1 1],ylim,'-g');
+                end 
+                
+%                 % fit gaussian to response
+%                 strGaussEqn = 'a*exp(-((x-b)/sigma)^2/2)';
+%                 d = measure.dblRateSpontaneous;
+%                 a = measure.vecPeakRate(i)-d;
+%                 b = measure.vecPeakTime(i);
+%                 sigma = 0.2;  % notice: half sigma
+%                 startPoints = [a b sigma];
+%                 tic
+%                 f = fit(measure.cellTime{i},measure.cellRate{i}-d,strGaussEqn,'Start', startPoints);
+%                 toc
+%                 ind = find(measure.cellTime{i}>measure.vecPeakTime(i)+f.sigma,1);
+%                 if ~isempty(ind) && ind>2
+%                     % now refit around the lefthand side of the peak
+%                     startPoints = [f.a f.b f.sigma*1.1];
+%                     f = fit(measure.cellTime{i}(1:ind),measure.cellRate{i}(1:ind)-d,strGaussEqn,'Start', startPoints);
+%                 end
+%                 measure.vecOnsetTime(i) = f.b - f.sigma*2;
+%                 measure.vecPeakTime(i) = f.b;
+%                 logmsg(['Gauss fit peak time = '  num2str(measure.vecPeakTime(i))]);
+%                 logmsg(['Gauss fit onset time = '  num2str(measure.vecOnsetTime(i))]);
+%                 if 1
+%                     figure;
+%                     plot(measure.cellTime{i},measure.cellRate{i},'k-');
+%                     hold on
+%                     plot(measure.cellTime{i}, d+f.a*exp(-((measure.cellTime{i}-f.b)/f.sigma).^2))
+%                     plot(measure.vecOnsetTime(i),measure.dblRateSpontaneous,'o');
+%                     plot(measure.vecPeakTime(i)*[1 1],ylim,'-b');
+%                 end
             else
                 sParams.dblOnsetResponseThreshold = 0.5;
-                dblThreshold = measure.dblRateSpontaneous + sParams.dblOnsetResponseThreshold*(sRate.dblPeakRate-measure.dblRateSpontaneous);
-                ind = find(sRate.vecRate>dblThreshold,1);
+                dblThreshold = measure.dblRateSpontaneous + sParams.dblOnsetResponseThreshold*(measure.vecPeakRate(i)-measure.dblRateSpontaneous);
+                ind = find(measure.cellRate{i}>dblThreshold,1);
                 if isempty(ind) || ind==1 % probably spontaneous rate is wrong
-                    dblRateSpontaneous = median(sRate.vecRate);
-                    dblThreshold = dblRateSpontaneous + sParams.dblOnsetResponseThreshold*(sRate.dblPeakRate-dblRateSpontaneous);
-                    ind = find(sRate.vecRate>dblThreshold,1);
+                    dblRateSpontaneous = median(measure.cellRate{i});
+                    dblThreshold = dblRateSpontaneous + sParams.dblOnsetResponseThreshold*(measure.vecPeakRate(i)-dblRateSpontaneous);
+                    ind = find(measure.cellRate{i}>dblThreshold,1);
                 end
-                measure.vecOnsetTime(i) = sRate.vecTime(ind);
+                if ~isempty(ind)
+                    measure.vecOnsetTime(i) = measure.cellTime{i}(ind);
+                else
+                    measure.vecOnsetTime(i) = NaN;
+                end
             end
             
         end
@@ -247,8 +319,8 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     %         DeltaT = (tLeft + tRight)/2 + (x0Left - x0Right)/(2v)
     %         xRF = 1/2 v (tLeft - tRight)
     
-    vecTLeft =measure.vecPeakTime(indLeft);
-    vecTRight =measure.vecPeakTime(indRight);
+    vecTLeft = measure.vecPeakTime(indLeft);
+    vecTRight = measure.vecPeakTime(indRight);
     
     measure.vecPeakXRF_pix = vecSpeed_pix(indLeft) .* (vecTLeft - vecTRight) / 2;
     measure.vecPeakDeltaT = (vecTLeft + vecTRight)/2  + (vecStimStartX_pix(indLeft)-vecStimStartX_pix(indRight)) ./ vecSpeed_pix(indLeft) / 2;
@@ -287,8 +359,8 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     %   to earlier expression.
     
     dblH = record.intScreenWidth_pix/2;
-    vecSLeft =measure.vecNSpikes(indLeft) -measure.dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
-    vecSRight =measure.vecNSpikes(indRight) -measure.dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
+    vecSLeft = measure.vecNSpikes(indLeft) -measure.dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
+    vecSRight = measure.vecNSpikes(indRight) -measure.dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
     vecMLeft =   cellfun(@sum,measure.cellSpikeT(indLeft))  - 1/2 * measure.dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
     vecMRight = cellfun(@sum,measure.cellSpikeT(indRight)) - 1/2 * measure.dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
     
@@ -322,12 +394,12 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     
     if sum(vecLeft & vecResponsive)>1
         vecTime = measure.vecPeakTime;
-        measure.lmLeft = fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),vecTime(vecLeft & vecResponsive));
+        measure.lmLeft = compact(fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),vecTime(vecLeft & vecResponsive)));
         measure.dblDeltaTLeft = measure.lmLeft.Coefficients.Estimate(1);
         measure.dblXRFLeft_pix = measure.lmLeft.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indLeft));
         
         vecTime = measure.vecOnsetTime;
-        measure.lmLeftFromOnset = fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),vecTime(vecLeft & vecResponsive));
+        measure.lmLeftFromOnset = compact(fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),vecTime(vecLeft & vecResponsive)));
         measure.dblDeltaTLeftFromOnset = measure.lmLeftFromOnset.Coefficients.Estimate(1);
         measure.dblXRFLeftFromOnset_pix = measure.lmLeftFromOnset.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indLeft));
     else
@@ -340,12 +412,12 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     end
     if sum(vecRight & vecResponsive)>1
         vecTime = measure.vecPeakTime;
-        measure.lmRight = fitlm(1./vecSpeed_pix(vecRight & vecResponsive),vecTime(vecRight & vecResponsive));
+        measure.lmRight = compact(fitlm(1./vecSpeed_pix(vecRight & vecResponsive),vecTime(vecRight & vecResponsive)));
         measure.dblDeltaTRight = measure.lmRight.Coefficients.Estimate(1);
         measure.dblXRFRight_pix = -measure.lmRight.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indRight));
         
         vecTime = measure.vecOnsetTime;
-        measure.lmRightFromOnset = fitlm(1./vecSpeed_pix(vecRight & vecResponsive),vecTime(vecRight & vecResponsive));
+        measure.lmRightFromOnset = compact(fitlm(1./vecSpeed_pix(vecRight & vecResponsive),vecTime(vecRight & vecResponsive)));
         measure.dblDeltaTRightFromOnset = measure.lmRightFromOnset.Coefficients.Estimate(1);
         measure.dblXRFRightFromOnset_pix = -measure.lmRightFromOnset.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indRight));
         
@@ -357,6 +429,18 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.dblDeltaTRightFromOnset = NaN;
         measure.dblXRFRightFromOnset_pix = NaN;
         
+    end
+    
+    if sum(measure.vecZetaP<0.05)>2 
+        measure.boolResponsive = true;
+    else
+        measure.boolResponsive = false;
+    end
+    if ~measure.boolResponsive
+        % reduce database size
+        logmsg('Cluster not responsive. Removing PSTHs');
+        measure.cellTime = {};
+        measure.cellRate = {};
     end
     
     measure = rmfield(measure,'cellSpikeT'); % to reduce database size

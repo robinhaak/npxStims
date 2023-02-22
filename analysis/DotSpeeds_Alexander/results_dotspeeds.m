@@ -6,8 +6,11 @@ function results_dotspeeds(record)
 %
 % 2022-2023, Alexander Heimel
 
-global measures %#ok<GVMIS>
-evalin('base','global measures');
+global measures globalrecord %#ok<GVMIS>
+evalin('base','global measures globalrecord');
+
+globalrecord = record;
+
 set(groot, 'defaultAxesTickDir', 'out');
 set(groot,  'defaultAxesFontSize', 10);
 
@@ -23,7 +26,7 @@ clrRight = [0 0 1];
 selected_measures = select_measures_by_channel( record.measures, record, 'intIndex');
 for m = 1:length(selected_measures)
     measures = selected_measures(m);
-    if sum(measures.vecZetaP<0.05)<2 
+    if ~measures.boolResponsive
         % silently skipping, because there are too few responses
         logmsg(['Skipping ' num2str(measures.intIndex) ' because of no response'])
         continue
@@ -33,7 +36,7 @@ for m = 1:length(selected_measures)
 %         continue
 %     end
 
-    figure('Name',['Index ' num2str(measures.intIndex)],'NumberTitle','off');
+    figure('Name',['Dots ' num2str(measures.intIndex)],'NumberTitle','off');
     subplot(3,2,1)
     plot(record.sStimuli.vecSpeed_deg(indLeft),measures.vecPeakRate(indLeft),'.-','Color',clrLeft);
     hold on;
@@ -51,10 +54,10 @@ for m = 1:length(selected_measures)
     plot(vecInvSpeed_pix(indRight),measures.vecPeakTime(indRight),'o','Color',clrRight);
     
     if ~isempty(measures.lmLeft) %&& ~isnan(measures.lmLeft.Coefficients.pValue(1))
-        h = plot(measures.lmLeft);
-        set(h(1),'color',clrLeft);
-        set(h(2),'color',clrLeft);
-        set(h(3),'color',clrLeft);
+        %h = plot(measures.lmLeft);
+        %set(h(1),'color',clrLeft);
+        %set(h(2),'color',clrLeft);
+        %set(h(3),'color',clrLeft);
 
         % plot full regression line
         b = measures.lmLeft.Coefficients.Estimate(1);
@@ -63,10 +66,10 @@ for m = 1:length(selected_measures)
         plot(x,a*x + b,'-','Color',clrLeft)
     end
     if ~isempty(measures.lmRight) %&& ~isnan(measures.lmRight.Coefficients.pValue(1))
-        h = plot(measures.lmRight);
-        set(h(1),'color',clrRight)
-        set(h(2),'color',clrRight)
-        set(h(3),'color',clrRight)
+        %h = plot(measures.lmRight);
+        %set(h(1),'color',clrRight)
+        %set(h(2),'color',clrRight)
+        %set(h(3),'color',clrRight)
 
                 % plot full regression line
         b = measures.lmRight.Coefficients.Estimate(1);
@@ -86,16 +89,18 @@ for m = 1:length(selected_measures)
 
     vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind1) + measures.cellTime{ind1}*vecSpeed_pix(ind1);
     plot(vecStimPos_pix,measures.cellRate{ind1},'-','Color',clrLeft);
-
-    dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(ind1) +  measures.vecOnsetTime(ind1)*vecSpeed_pix(ind1);
-    plot(dblStimPosAtResponseOnset_pix,measures.dblRateSpontaneous,'o','Color',[0 0 0],'MarkerFaceColor',clrLeft);
-
     vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind2) - measures.cellTime{ind2}*vecSpeed_pix(ind2);
     plot(vecStimPos_pix,measures.cellRate{ind2},'-','Color',clrRight);
 
+    
+    dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(ind1) +  measures.vecPeakTime(ind1)*vecSpeed_pix(ind1);
+    plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',clrLeft);
+    dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(ind2) -  measures.vecPeakTime(ind2)*vecSpeed_pix(ind2);
+    plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',clrRight);
+    dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(ind1) +  measures.vecOnsetTime(ind1)*vecSpeed_pix(ind1);
+    plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',clrLeft);
     dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(ind2) -  measures.vecOnsetTime(ind2)*vecSpeed_pix(ind2);
-    plot(dblStimPosAtResponseOnset_pix,measures.dblRateSpontaneous,'o','Color',[0 0 0],'MarkerFaceColor',clrRight);
-
+    plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',clrRight);
 
     xlabel('Stim position (pix)');
     ylabel(['Rate stim ' num2str(ind1) ' (sp/s)']);
@@ -107,15 +112,19 @@ for m = 1:length(selected_measures)
     ind2 = ind1 + 6;
     vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind1) + measures.cellTime{ind1}*vecSpeed_pix(ind1);
     plot(vecStimPos_pix,measures.cellRate{ind1},'-','Color',clrLeft)
-    dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(ind1) +  measures.vecOnsetTime(ind1)*vecSpeed_pix(ind1);
-    plot(dblStimPosAtResponseOnset_pix,measures.dblRateSpontaneous,'o','Color',[0 0 0],'MarkerFaceColor',clrLeft);
     
     vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind2) - measures.cellTime{ind2}*vecSpeed_pix(ind2);
-    if ~isempty(measures.cellRate{ind2})
-        plot(vecStimPos_pix,measures.cellRate{ind2},'-','Color',clrRight)
-    end
+    plot(vecStimPos_pix,measures.cellRate{ind2},'-','Color',clrRight)
+    
+    dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(ind1) +  measures.vecPeakTime(ind1)*vecSpeed_pix(ind1);
+    plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',clrLeft);
+    dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(ind2) -  measures.vecPeakTime(ind2)*vecSpeed_pix(ind2);
+    plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',clrRight);
+    dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(ind1) +  measures.vecOnsetTime(ind1)*vecSpeed_pix(ind1);
+    plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',clrLeft);
     dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(ind2) -  measures.vecOnsetTime(ind2)*vecSpeed_pix(ind2);
-    plot(dblStimPosAtResponseOnset_pix,measures.dblRateSpontaneous,'o','Color',[0 0 0],'MarkerFaceColor',clrRight);
+    plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',clrRight);
+    
     xlabel('Stim position (pix)');
     ylabel(['Rate stim ' num2str(ind1) ' (sp/s)']);
     %legend('Left','Right');
@@ -150,4 +159,4 @@ for m = 1:length(selected_measures)
 end % m
 
 measures = record.measures;
-logmsg('''measures'' available in workspace');
+logmsg('''measures'' and ''globalrecord'' available in workspace');

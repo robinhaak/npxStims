@@ -6,8 +6,11 @@ function results_gratingpatches(record)
 %
 % 2023, Alexander Heimel
 
-global measures %#ok<GVMIS>
-evalin('base','global measures');
+global measures globalrecord %#ok<GVMIS>
+evalin('base','global measures globalrecord');
+
+globalrecord = record;
+
 set(groot, 'defaultAxesTickDir', 'out');
 set(groot,  'defaultAxesFontSize', 10);
 
@@ -21,7 +24,7 @@ selected_measures = select_measures_by_channel( record.measures, record, 'intInd
 for m = 1:length(selected_measures)
     measures = selected_measures(m);
     
-    figure;
+    figure('Name',['Grating ' num2str(measures.intIndex)],'NumberTitle','off');
     hold on;
     title(['Channel: ' num2str(measures.intIndex)]);
     imagesc(vecX_pix_interp,vecY_pix_interp,measures.matAvgResp);
@@ -33,4 +36,4 @@ end % m
 
 
 measures = record.measures;
-logmsg('''measures'' available in workspace');
+logmsg('''measures'' and ''globalrecord'' available in workspace');

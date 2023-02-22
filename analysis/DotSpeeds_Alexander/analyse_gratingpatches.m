@@ -42,34 +42,43 @@ if contains('sCluster',{sVars.name})
     end
     
     structEP = sSynthData.cellStim{ind}.structEP; 
+    [sCluster.IdxClust]
     
-    % structEP.vecTrialStimOnSecs: 5.25, +1, +1, +1, ...
+    sCluster = sSynthData.sCluster;
+    
     % sCluster(1).SpikeTimes: 0.0210, +0.0515, +0.0665, ... 
-    % structEP.vecStimOnTime : 3562.873, +1.0001, +1.00003, ... synced to IMEC spiketimes? 
-    % structEP.ActOnNI: 3682.12, +0.9976, +1.0022, +0.9818, % from NI?
-    % structEP.T0 = 119.285  (roughly difference between top 2), but the
+    % 
+    % structEP fields:
+    %   vecStimOnTime : 3562.873, +1.0001, +1.00003, ... synced to IMEC spiketimes? 
+    %   ActOnNI: 3682.12, +0.9976, +1.0022, +0.9818, % from NI?
+    %   T0 = 119.285  (roughly difference between top 2), but the
     %     difference between vecStimOnTime and ActOnNI is not completely
     %     constance, sometimes a 30ms difference
-    % structEP.ActOnSecs: 691753.585, +1.0003, +1.0018, ... from PTB?
-    % structEP.ActStartSecs: 691753.314, +1.0001, +0.9999, ... from PTB?
-
-    
+    %   ActOnSecs: 691753.585, +1.0003, +1.0018, ... from PTB?
+    %   ActStartSecs: 691753.314, +1.0001, +0.9999, ... from PTB?
+    %   vecTrialStartSecs: 5, +1, +1, ... planned trial starts
     
     vecStimOnTime = structEP.vecStimOnTime;
     vecStimOffTime = structEP.vecStimOffTime;
 
 %    vecStimOnTime = structEP.ActOnNI;
 %    vecStimOffTime = structEP.ActOffNI;
-    
+
+logmsg('WORKING ON THE MEANING OF ALL DIFFERENT TIME STAMPS');
+logmsg('MAKE A SEPARATE FUNCTION THAT PLOTS ALL DIFFERENT TIME STAMPS RELATIVE TO EACH OTHER');
+
+
     if isempty(vecClustersToAnalyze)
         vecClustersToAnalyze = unique([sCluster.IdxClust]);
     end
     intNumClusters = length(vecClustersToAnalyze);
-    vecSpikeTimesOfCluster = cell(intNumClusters,1);
+    vecSpikeTimesOfCluster = cell(intNumClusters,1)  ;
+    
+    
     for c = 1:intNumClusters
         indClus = find([sCluster.IdxClust]==vecClustersToAnalyze(c),1);
         if ~isempty(indClus)
-            vecSpikeTimesOfCluster{c} = sCluster(indClus).SpikeTimes;
+            vecSpikeTimesOfCluster{c} = sCluster(indClus).SpikeTimes ;
         end
     end
 

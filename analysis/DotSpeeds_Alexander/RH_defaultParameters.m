@@ -8,11 +8,11 @@ function sParams = rh_defaultParameters()
 sParams.strOutputPath = 'Set true path here or set strOutputPath in processparams_local';
 
 sParams.separationFromPrevStimOff = 0.1; % s, time to stay clear of off-response for calculation of spontaneous rate
-sParams.boolSmooth = true;
+sParams.boolSmooth = false;
 sParams.boolOnlyUseMiddleRangeSpeeds = true;
 sParams.boolUseResponseOnset = true;
-sParams.boolFitGaussian = false; % compute onset times based on Gaussian fit
-sParams.dblThresholdResponsiveZetaP = 1;%0.05;
+sParams.boolFitGaussian = true; % compute peak and onset times based on Gaussian fit
+sParams.dblThresholdResponsiveZetaP = 0.05;
 
 if exist('processparams_local.m','file')
     sOldParams = sParams;

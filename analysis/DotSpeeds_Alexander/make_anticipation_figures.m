@@ -155,7 +155,7 @@ ylabel('Depth from Kilosort (\mum)');
 set(gca,'YDir','reverse');
 
 %% Figure Patch peak times versus Depth
-record = db(find_record(db,'subject=85235,stimulus=GratingPatches,date=20230117'));
+record = db(find_record(db,'subject=85235,sessionid=20230117_85235_13_15_16_RH_GratingPatches,date=20230117'));
 
 indResponsive = [record.measures.dblResponseMax]>2; 
 vecDepth = [record.measures.dblDepth_um]; 
