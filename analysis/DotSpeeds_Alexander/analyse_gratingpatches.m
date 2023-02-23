@@ -13,6 +13,9 @@ end
 
 sParams = RH_defaultParameters();
 
+if verbose
+    record = RH_analyse_synchronization(record,verbose);
+end
 
 %% Load data
 % check which channels or clusters to analyse
@@ -28,7 +31,7 @@ strLog = fullfile(strSessionPath,[record.sessionid '.mat']);
 sVars = whos('-file',strLog);
 if contains('sCluster',{sVars.name})
     % single unit data
-    load(strLog,'sCluster','structEP','sSynthData'); %rm sSynthData later
+    load(strLog,'sSynthData'); %rm sSynthData later
 
     cellExpType = cellfun(@(x) x.structEP.strExpType, sSynthData.cellStim, 'UniformOutput', false);
     ind = find(contains(cellExpType,record.stimulus));
@@ -43,8 +46,6 @@ if contains('sCluster',{sVars.name})
     end
     
     structEP = sSynthData.cellStim{ind}.structEP; 
-    [sCluster.IdxClust]
-    
     sCluster = sSynthData.sCluster;
     
     % sCluster(1).SpikeTimes: 0.0210, +0.0515, +0.0665, ... 
@@ -64,10 +65,6 @@ if contains('sCluster',{sVars.name})
 
 %    vecStimOnTime = structEP.ActOnNI;
 %    vecStimOffTime = structEP.ActOffNI;
-
-logmsg('WORKING ON THE MEANING OF ALL DIFFERENT TIME STAMPS');
-logmsg('MAKE A SEPARATE FUNCTION THAT PLOTS ALL DIFFERENT TIME STAMPS RELATIVE TO EACH OTHER');
-
 
     if isempty(vecClustersToAnalyze)
         vecClustersToAnalyze = unique([sCluster.IdxClust]);
@@ -157,7 +154,6 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
 
     measure.dblRateSpontaneous = computeRateSpontaneous( vecSpikeTimesOfCluster{c}, vecStimOnTime,vecStimOffTime, sParams);
 
-
     vecSpikesCh = vecSpikeTimesOfCluster{c};
     vecRate = zeros(1,structEP.intTrialNum);
     for intTrial = 1:structEP.intTrialNum
@@ -172,16 +168,15 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     end
     measure.matAvgResp = matAvgResp - measure.dblRateSpontaneous;
 
-
-
+    [measure.dblPValue,measure.boolResponsive] = myanova(vecRate,vecStimIdx);
+    
     % Analyse responses for peak location
     measure.dblPeakRate = NaN;
     measure.dblPeakTime = NaN;
     [measure.dblResponseMax,indLoc] = max(measure.matAvgResp(:));
-    indTrials = find(vecStimIdx == indLoc);
 
-    [measure.dblZetaP,sZETA,sRate,~] = zetatest(vecSpikesCh,...
-        vecStimOnTime(indTrials),dblDuration); % ~ is essential for correct output
+    [measure.dblZetaP,~,sRate,~] = zetatest(vecSpikesCh,...
+        vecStimOnTime(vecStimIdx == indLoc),dblDuration); % ~ is essential for correct output
     if ~isempty(sRate)
         measure.dblPeakRate = sRate.dblPeakRate;
         measure.dblPeakTime = sRate.dblPeakTime;

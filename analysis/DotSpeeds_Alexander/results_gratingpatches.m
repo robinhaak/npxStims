@@ -24,6 +24,11 @@ selected_measures = select_measures_by_channel( record.measures, record, 'intInd
 for m = 1:length(selected_measures)
     measures = selected_measures(m);
     
+    if ~measures.boolResponsive
+        continue
+    end
+    
+    
     figure('Name',['Grating ' num2str(measures.intIndex)],'NumberTitle','off');
     hold on;
     title(['Channel: ' num2str(measures.intIndex)]);
