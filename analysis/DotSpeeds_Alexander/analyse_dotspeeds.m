@@ -36,7 +36,9 @@ end
 
 sParams = RH_defaultParameters();
 
-record = RH_analyse_synchronization(record,verbose);
+if verbose
+    record = RH_analyse_synchronization(record,verbose);
+end
 
 %% Load data
 % check which channels or clusters to analyse
@@ -184,27 +186,26 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.vecPeakRate(i) = NaN;
         
         if sParams.boolSmooth && ~isempty(vecSpikeTimesOfCluster{c})
-            
-            
-                        dblBase = 1.5;
-                        intSmoothSd = 2;
-                        dblMinScale = round(log(1/10) / log(dblBase));
-                        [sRate.vecT,sRate.vecRate,~] = getIFR(vecSpikeTimesOfCluster{c},vecEventStarts,vecDuration(i)+dblIntertrialInterval,intSmoothSd,dblMinScale,dblBase,false);
-                        if ~isempty(sRate.vecT)
-                            [sRate.dblPeakRate,ind] = max(sRate.vecRate);
-                            sRate.dblPeakTime = sRate.vecT(ind);
-                        else
-                            sRate = [];
-                        end
+            dblBase = 1.5;
+            intSmoothSd = 2;
+            dblMinScale = round(log(1/10) / log(dblBase));
+            [sRate.vecT,sRate.vecRate,~] = getIFR(vecSpikeTimesOfCluster{c},vecEventStarts,vecDuration(i)+dblIntertrialInterval,intSmoothSd,dblMinScale,dblBase,false);
+            if ~isempty(sRate.vecT)
+                [sRate.dblPeakRate,ind] = max(sRate.vecRate);
+                sRate.dblPeakTime = sRate.vecT(ind);
+            else
+                sRate = [];
+            end
         end
-        
+
         if ~isempty(sRate)
             measure.cellRate{i} = sRate.vecRate;
             measure.cellTime{i} = sRate.vecT;
             measure.vecPeakTime(i) = sRate.dblPeakTime;
             measure.vecPeakRate(i) = sRate.dblPeakRate;
+            measure.vecOnsetTime(i) = sRate.dblPeakTime;
             
-            if sParams.boolFitGaussian
+            if sParams.boolFitGaussian && measure.vecZetaP(i)<0.05
                 logmsg(['Fitting ' num2str(i) ' of ' num2str(length(structEP.sAllDots.stimID))]);
                 
                 % fit erf to cumulative response
@@ -235,7 +236,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
                 measure.vecOnsetTime(i) = Pfit(3) - 2*Pfit(4);
                 %                 logmsg(['Erf fit peak time = '  num2str(measure.vecPeakTime(i))]);
                 %                 logmsg(['Erf fit onset time = '  num2str(measure.vecOnsetTime(i))]);
-                if 0
+                if 1
                     figure;
                     plot(x,y,'.')
                     hold on;

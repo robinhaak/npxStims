@@ -99,9 +99,12 @@ for i=1:length(db)
 end
 
 %% Figure Delta T versus Depth
-record = db(find_record(db,'subject=85235,sessionid=20230117_85235_12_15_45_RH_MovingDots'));
+%record = db(find_record(db,'subject=85235,sessionid=20230117_85235_12_15_45_RH_MovingDots'));
 %record = db(find_record(db,'subject=85235,sessionid=20230117_singleUnits_new'));
-%record = db(find_record(db,'subject=85235,sessionid=20230117_singleUnits'));
+record = db(find_record(db,'subject=85235,sessionid=20230118_singleUnits,stimulus=MovingDots'));
+record = db(find_record(db,'subject=85235,sessionid=20230119_singleUnits,stimulus=MovingDots'));
+%record = db(find_record(db,'subject=85234,sessionid=20230118_singleUnits,stimulus=MovingDots'));
+%record = db(find_record(db,'subject=85234,sessionid=20230119_singleUnits,stimulus=MovingDots'));
 
 vecDepth = [record.measures.dblDepth_um]; 
 vecDeltaTLeft = [record.measures.dblDeltaTLeft];

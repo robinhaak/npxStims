@@ -38,7 +38,8 @@ if contains('sCluster',{sVars.name})
     end
     if length(ind)>1
         logmsg(['More than one stimulus ' record.stimulus ' in '  strLog]);
-        return
+        logmsg('Taking last stimulus')
+        ind = ind(end);
     end
     
     structEP = sSynthData.cellStim{ind}.structEP; 
