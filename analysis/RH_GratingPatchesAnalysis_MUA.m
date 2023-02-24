@@ -5,8 +5,7 @@
 %you need a GPU to run this script!
 %Robin Haak, November 2022
 
-vecChs = flip([1 385]); %channels to plot (1= bottom Ch)
-%vecChs = flip([220:225]);
+vecChs = flip([200:250]); %inputs channels to plot (1= bottom Ch)
 
 %% query user for file names & locations
 %ap.bin en ap.meta
@@ -21,7 +20,7 @@ load(fullpath(strLogPath,strLog)); % %#ok<ows');
 [vecSpikeCh,vecSpikeT,~] = DP_DetectSpikesInBinaryFile(fullpath(strPathIm,strAp),[],[],'int16'); %strClass='int16'
 vecSpikeSecs = double(vecSpikeT)/str2double(sMetaIm.imSampRate)+...
     str2double(sMetaIm.firstSample)/str2double(sMetaIm.imSampRate); %convert to seconds+add offset
-intNumChs = 385; %str2num(sMetaIm.nSavedChans); %#ok<ST2NM>
+intNumChs = str2num(sMetaIm.nSavedChans); %#ok<ST2NM>
 
 %% get stimulus onset times
 %to be added: re-alignment of times based on diode data
@@ -41,63 +40,54 @@ vecY_pix = unique(vecUniqueRects(:,2))+(vecUniqueRects(1,4)-unique(vecUniqueRect
 
 %% loop through data
 matAvgRespAll = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
+matAvgRespAllBlSub = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
 for intCh = 1:intNumChs
     vecSpikesCh = vecSpikeSecs(vecSpikeCh==intCh);
     vecRate = zeros(1,structEP.intTrialNum);
+    vecBase = zeros(1,structEP.intTrialNum);
     for intTrial = 1:structEP.intTrialNum
         vecSpikeT = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)&vecSpikesCh<vecStimOffSecs(intTrial));
         vecRate(intTrial) = numel(vecSpikeT)/(vecStimOffSecs(intTrial)-vecStimOnSecs(intTrial));
-
+        vecSpikeB = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)-1&vecSpikesCh<vecStimOnSecs(intTrial));
+        vecBase(intTrial) = numel(vecSpikeB)/1;
     end
     matAvgResp = NaN(numel(vecY_pix),numel(vecX_pix));
+    matAvgRespBlSub = NaN(numel(vecY_pix),numel(vecX_pix));
 
     for intLoc = vecUniqueStims
         matAvgResp(intLoc) = mean(vecRate(vecStimIdx==intLoc));
+        matAvgRespBlSub(intLoc) = mean(vecRate(vecStimIdx==intLoc))-mean(vecBase(vecStimIdx==intLoc));
     end
-    sParams.dblSecsFromPrevStimOff = 0.1; %s, for computing unit's baseline rate
-    dblRateSpontaneous = computeRateSpontaneous(vecSpikeT,vecStimOnSecs,vecStimOffSecs,sParams);
-    matAvgRespAll(:,:,intCh) = matAvgResp-dblRateSpontaneous;
+    matAvgRespAll(:,:,intCh) = matAvgResp;
+    matAvgRespAllBlSub(:,:,intCh) = matAvgRespBlSub;
 end
 
 %% plot data
 %interpolate
-vecX_pix_interp = linspace(vecX_pix(1),vecX_pix(end),16);
-vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),9);
+vecX_pix_interp = linspace(vecX_pix(1),vecX_pix(end),73);
+vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),41);
 
 %get colormap(s)
 cellColorMaps = RH_ColorMaps;
 %%
 %loop through channels
 for intCh = vecChs
-    matAvgRespAll_interp = matAvgRespAll(:,:,intCh);
+    matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intCh),3);
+    matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intCh),3);
     figure;hold on;title(['Channel: ' num2str(intCh)]);
-    %     subplot(2,1,1);
+%     subplot(2,1,1);
     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAll_interp);
-    set(gca, 'YDir','reverse');
-    %colormap(cellColorMaps{2});
-    cb=colorbar;
-    cb.Label.String='spks/s';
-    axis image
+    set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});cb=colorbar;cb.Label.String='spks/s';
     fixfig;
+%     subplot(2,1,2);
+%     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
+%     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;
+%     fixfig;
+%     pause
 end
 
-%%
-function dblRateSpontaneous = computeRateSpontaneous(vecSpikeTimes,vecStimOnSecs,vecStimOffSecs,sParams)
-%compute unit's spontaneous/baseline rate
-intCount = 0;
-dblPeriod = 0;
-for intTrial=1:length(vecStimOffSecs)-1
-    intCount = intCount + ...
-        length(find(vecSpikeTimes>(vecStimOffSecs(intTrial)+sParams.dblSecsFromPrevStimOff) & ...
-        vecSpikeTimes<vecStimOnSecs(intTrial+1)));
-    dblPeriod = dblPeriod + vecStimOnSecs(intTrial+1) - (vecStimOffSecs(intTrial)+sParams.dblSecsFromPrevStimOff);
-end
-dblRateSpontaneous = intCount / dblPeriod;
-if dblPeriod<5
-    fprintf('Less than 5s to compute spontaneous rate.\n')
-end
-if intCount<10
-    fprintf('Less than 10 spikes to compute spontaneous rate.\n')
-end
 
-end
+
+
+
+

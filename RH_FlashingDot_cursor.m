@@ -19,9 +19,9 @@ sStimParams.intCornerTrigger = 2;
 sStimParams.dblCornerSize = 1/30; % fraction of screen width
 
 %stimulus parameters
-sStimParams.dblFlashRate = 60; %Hz; initial flash rate
+sStimParams.dblFlashRate = 1; %Hz; initial flash rate
 sStimParams.dblSize = 100; %pix; initial stimulus size
-sStimParams.dblStimulus = 1; %stimulus color (dbl, [0 1])
+sStimParams.dblStimulus = 0; %stimulus color (dbl, [0 1])
 sStimParams.intStimulus = round(mean(sStimParams.dblStimulus)*255);
 sStimParams.dblStimulusAlternate = 0.5; %stimulus color (dbl, [0 1])
 sStimParams.intStimulusAlternate = round(mean(sStimParams.dblStimulusAlternate)*255);

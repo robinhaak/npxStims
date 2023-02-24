@@ -4,43 +4,25 @@ function record = analyse_dotspeeds(record,verbose)
 %  RECORD = ANALYSE_DOTSPEEDS( RECORD, VERBOSE )
 %
 %  Analysis responses to stimuli with different speeds
+%     For modeling, assumes 
+%         tLeft = x / v + w /(2v) + DeltaT
+%         tRight = - x / v + w /(2v) + DeltaT
+%         where tLeft is response time when stimulus moves from left
+%         where tRight is response time when stimulus moves from right
+%         x is stimulus position (x=0 is center of the screen, w is width of the screen, positive is to the right)
 %
-%  DeltaT>0 response to stimulus in the past.
-%  DeltaT<0 response to stimulus in the future.
-%  Calculate DeltaT based on PeakTime
-%  Define
-%     x0 as the starting position of the center of the stimulus
-%     v the speed of the stimulus.
-%     Then the center stimulus position at time t is x = x0 + v t
-%     If xRF is the receptive field (RF) center, then the time tPass at
-%     which the center passes the RF center is,
-%         tPass = (xRF - x0)/v
+%         from this follows: 
+%         DeltaT = (tLeft + tRight)/2 - w/(2v)
+%         x = 1/2 v (tLeft - tRight)
 %
-%  Compute
-%     tLeft = peakTime left stimulus
-%     tRight = peakTime right stimulus
-%  Assume tLeft = tPassLeft + DeltaT, and tRight = tPassRight + DeltaT
-%  Then
-%         tLeft = (xRF - x0Left) / v + DeltaT
-%         tRight = - (xRF - X0Right) / v + DeltaT
-%
-%  from this follows:
-%         DeltaT = (tLeft + tRight)/2 + (x0Left - x0Right)/(2v)
-%         xRF = 1/2 v (tLeft - tRight)
-%
-% 2022-2023, Robin Haak, Alexander Heimel
+% 2022, Robin Haak, Alexander Heimel
 
 if nargin<2 || isempty(verbose)
     verbose = true;
 end
 
 sParams.strOutputPath = getdesktopfolder(); % should be loaded from parameter file instead
-
-% strPath = fullfile(fileparts(mfilename('fullpath')),'..','..');
-% sParams.strOutputPath = strPath; % should be loaded from parameter file instead
-
 sParams.separationFromPrevStimOff = 0.1; % s, time to stay clear of off-response for calculation of spontaneous rate
-
 
 %% Load data
 strSessionPath = fullfile(sParams.strOutputPath,record.project,'Data_collection',record.dataset,record.subject,record.sessionid);
@@ -67,7 +49,7 @@ vecStimID = structEP.vecStimID;
 % intDir = length(vecDirs);
 
 %input channels to plot
-vecChs  = 200:235; % 1 = tip of the probe  
+vecChs  = 130:167; % 1 = tip of the probe  
 % notable channels 147,150,151,153,157,167
 % vecChs = [147 150 151 153 157 167];
 
@@ -77,12 +59,11 @@ record.intScreenWidth_pix = structEP.sStimParams.intScreenWidth_pix;
 
 vecSpeed_pix = record.sStimuli.vecSpeed_pix;
 
-%vecStimRadius_pix = cellfun( @(x) abs(x(1,1)-x(3,1)), record.sStimuli.vecBoundingRect);
-vecStimStartX_pix = cellfun( @(x) mean([x(1,1),x(3,1)]), record.sStimuli.vecBoundingRect) - record.intScreenWidth_pix/2 ; % center of screen is 0
-
 disp('DELTAT CALCULATION IS DEPENDENT ON STIMULUS SPECIFICS! Assuming first 6 stimuli leftwards, and next 6 stimuli rightwards');
     indLeft = 1:6;
     indRight = 7:12;
+
+
 
 measures = struct();
 for c = 1:length(vecChs) % should be over units
@@ -126,30 +107,25 @@ for c = 1:length(vecChs) % should be over units
     % DeltaT<0 response to stimulus in the future.
     % Calculate DeltaT based on PeakTime
     % Define 
-    %     x0 as the starting position of the center of the stimulus
-    %     v the speed of the stimulus.
-    %     Then the center stimulus position at time t is x = x0 + v t
-    %     If xRF is the receptive field (RF) center, then the time tPass at
-    %     which the center passes the RF center is,
-    %         tPass = (xRF - x0)/v
+    %     TLeft = peakTime left stimulus
+    %     TRight = peakTime right stimulus
+    % 
+    %     xRF = x0 + v tPass
+    %         
+    %         tLeft = x / v + w /(2v) + DeltaT
+    %         tRight = - x / v + w /(2v) + DeltaT
+    %         where tLeft is response time when stimulus moves from left
+    %         where tRight is response time when stimulus moves from right
+    %         x is stimulus position (x=0 is center of the screen, w is width of the screen, positive is to the right)
     %
-    % Compute
-    %     tLeft = peakTime left stimulus
-    %     tRight = peakTime right stimulus
-    % Assume tLeft = tPassLeft + DeltaT, and tRight = tPassRight + DeltaT 
-    % Then
-    %         tLeft = (xRF - x0Left) / v + DeltaT
-    %         tRight = - (xRF - X0Right) / v + DeltaT
-    %
-    % from this follows:
-    %         DeltaT = (tLeft + tRight)/2 + (x0Left - x0Right)/(2v)
-    %         xRF = 1/2 v (tLeft - tRight)
+    %         from this follows:
+    %         DeltaT = (tLeft + tRight)/2 - w/(2v)
+    %         x = 1/2 v (tLeft - tRight)
 
     vecTLeft = measures(c).vecPeakTime(indLeft);
     vecTRight = measures(c).vecPeakTime(indRight);
-
     measures(c).vecPeakXRF_pix = vecSpeed_pix(indLeft) .* (vecTLeft - vecTRight) / 2; 
-    measures(c).vecPeakDeltaT = (vecTLeft + vecTRight)/2  + (vecStimStartX_pix(indLeft)-vecStimStartX_pix(indRight)) ./ vecSpeed_pix(indLeft) / 2;
+    measures(c).vecPeakDeltaT = (vecTLeft + vecTRight)/2  - record.intScreenWidth_pix ./ vecSpeed_pix(indLeft) / 2;
 
     % Calculate DeltaT based on all spikes
     % Assume rate(t) = rateSpontaneous + s(dir) g(t - DeltaT - tPass)
@@ -158,44 +134,36 @@ for c = 1:length(vecChs) % should be over units
     %     and  \int_-\inf^+\inf t g(t) dt = 0 (satisfied if g is symmetric around 0) 
     %     and tPass = (xRF - x0)/v, where xRF is RF position, x0 is start
     %     of stimulus and v is speed.
-    % then from Expectation( nSpikes ) = \int_0^T rate(t) follows:
-    %     s(dir) = nSpikes - T rateSpontaneous,
+    % then s(dir) = nSpikes - T rateSpontaneous,
     %     with T time interval over which nSpikes is computed
-    % and an integration of t * rate(t) over 0 to T, by substituting t'=t+DeltaT-tPass shows
-    %     \int_0^T dt t rate(t) = 1/2 T^2 rateSpontaneous + s(dir)(DeltaT + tpass)
-    % but the Expectation( spike time of spikes between 0 to T ) * Expectation(nSpikes) = \int_0^T dt t rate(t) 
-    % thus 
-    %    E(spike time of spikes between 0 to T) * E(nSpikes) = 1/2 T^2 rateSpontaneous + s(dir)(DeltaT + tpass)
+    % and an integration with t'=t+DeltaT-tPass shows
+    %     Expectation( \sum_i t(i) ) = 1/2 T^2 rateSpontaneous + s(dir)(DeltaT + tpass)
     %
-    %    Note that E(spike time of spikes between 0 to T) * E(nSpikes) = E(\sum_i t(i))
     % Now define:
     %   SLeft = nSpikesLeft - T rateSpontaneous
     %   SRight = nSpikesRight - T rateSpontaneous
     %   MLeft = E(\sum_i t(i))_left -1/2 T^2 rateSpontaneous 
     %   MRight = E(\sum_i t(i))_right -1/2 T^2 rateSpontaneous 
     % Then:
-    %   MLeft / SLeft   = DeltaT + (xRF - x0Left)/v 
-    %   MRight / SRight = DeltaT - (xRF - x0Right)/v 
-    %
-    % =>
-    %   DeltaT = 1/2 (MLeft/SLeft + MRight/SRight + x0Left/v - x0Right/v)
-    %   xRF = 1/2 v (MLeft/SLeft + MRight/SRight) + 1/2 (x0Left + x0Right)
+    %   DeltaT = -h/v + (MLeft SRight + MRight SLeft) / (2 SLeft SRight)
+    %   xRF = v (MLeft SRight - MRight SLeft) / (2 SLeft SRight)
+    %       with h = screenWidth/2 and xRF relative to center
     %
     %   when only spikes are occuring at tLeft and tRight, this simplifies
     %   to earlier expression.
 
     dblH = record.intScreenWidth_pix/2;
+
     vecSLeft = measures(c).vecNSpikes(indLeft) - measures(c).dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
     vecSRight = measures(c).vecNSpikes(indRight) - measures(c).dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
     vecMLeft =   cellfun(@sum,measures(c).cellSpikeT(indLeft))  - 1/2 *  measures(c).dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
     vecMRight = cellfun(@sum,measures(c).cellSpikeT(indRight)) - 1/2 *  measures(c).dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
 
-    measures(c).vecMeanDeltaT = 1/2 * (vecMLeft ./ vecSLeft + vecMRight ./ vecSRight + ...
-        vecStimStartX_pix(indLeft)./ vecSpeed_pix(indLeft) - vecStimStartX_pix(indRight)./ vecSpeed_pix(indRight) )   ;
+    measures(c).vecMeanDeltaT = - dblH ./ vecSpeed_pix(indLeft)  + ...
+        (vecMLeft .* vecSRight + vecMRight .* vecSLeft) ./ (2 * vecSLeft .* vecSRight )  ;
 
     measures(c).vecMeanXRF_pix = vecSpeed_pix(indLeft) .* ...
-        (vecMLeft ./ vecSLeft - vecMRight ./ vecSRight) / 2  + ...
-        1/2*(vecStimStartX_pix(indLeft) + vecStimStartX_pix(indRight));
+        (vecMLeft .* vecSRight - vecMRight .* vecSLeft) ./ (2 * vecSLeft .* vecSRight ) ;
 
     indNaN = abs(measures(c).vecMeanXRF_pix) > dblH;
     measures(c).vecMeanXRF_pix(indNaN) =  NaN;
@@ -207,8 +175,6 @@ record.measures = measures;
 if verbose
     results_dotspeeds(record);
 end
-
-
 
 function dblRateSpontaneous = computeRateSpontaneous( vecSpikeTimes, vecStimOnSecs,vecStimOffSecs, sParams)
 % 
