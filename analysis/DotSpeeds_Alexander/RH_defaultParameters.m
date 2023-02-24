@@ -5,7 +5,7 @@ function sParams = rh_defaultParameters()
 %
 % 2023, Alexander Heimel, Robin Haak
 
-sParams.strOutputPath = 'Set true path here or set strOutputPath in processparams_local';
+sParams.strOutputPath = 'C:\Users\haak\Desktop\';%; Set true path here or set strOutputPath in processparams_local';
 
 sParams.separationFromPrevStimOff = 0.1; % s, time to stay clear of off-response for calculation of spontaneous rate
 sParams.boolSmooth = false;
