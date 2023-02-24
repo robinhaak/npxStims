@@ -81,7 +81,7 @@ vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),21);
 cellColorMaps = RH_ColorMaps;
 %%
 %loop through channels
-for intClu = 172:314 %numel(sCluster)
+for intClu = 223:225 %numel(sCluster)
     matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intClu),2);
     matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intClu),2);
     figure;hold on;title(['Cluster: ' num2str(intClu)]);

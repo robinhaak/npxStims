@@ -441,7 +441,6 @@ elseif intStimSet == 5
     sStimParams.vecDirections = [90 270]; %0 is rightward & 90 is downward motion
     sStimParams.intReps = 10; %per direction, so twice as many per location
     sStimParams.dblTrajLength_deg = 15; % approx. length of the trajectory
-    sStimParams.vecSecsPostBlank = [0.25 0.25];
     
     %this is a bit messy
     intTrajLength_pix = sStimParams.dblTrajLength_deg*sStimParams.dblPixelsPerDeg;
@@ -466,31 +465,21 @@ elseif intStimSet == 5
     sAllDots = struct;
     sAllDots.strStimSet = 'map_horiz_rf';
     intStimIdx = 1;
-    for intStim = 1:intTotTraj %up-down (90)
+    for intStim = 1:intTotTraj %up_down (90)
         sAllDots.stimID(intStimIdx) = intStimIdx;
         vecBoundingRect = vecBaseRect;
-        vecBoundingRect([1 3],:) = vecBoundingRect([1 3],:)+vecOffsetX(intStim);
+        vecBoundingRect(1,:) = 
+        vecBoundingRect(2,:) = 
+        vecBoundingRect(3,:) = 
+        vecBoundingRect(4,:) = 
         sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
-        sAllDots.vecDirection(intStimIdx) = 90;
-        sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
-        intStimIdx = intStimIdx+1;
-    end
-    for intStim = 1:intTotTraj %down-up (270)
-        sAllDots.stimID(intStimIdx) = intStimIdx;
-        vecBoundingRect = vecBaseRect;
-        vecBoundingRect([1 3],:) = vecBoundingRect([1 3],:)+vecOffsetX(intStim);
-        vecBoundingRect = flip(vecBoundingRect,2);
-        sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
-        sAllDots.vecDirection(intStimIdx) = 270;
+        sAllDots.vecDirection(intStimIdx) = 0;
         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(vecBoundingRect(1,:)));
         intStimIdx = intStimIdx+1;
     end
 
-    sAllDots.intStimulusConditions = intStimIdx-1;
-    sAllDots.vecStimName = repmat({'classic'},size(sAllDots.vecBoundingRect));
-    sAllDots.vecSpeed_deg = repmat(sStimParams.vecDotSpeeds_deg,size(sAllDots.vecBoundingRect));
-    sAllDots.vecSpeed_pix = repmat(sStimParams.vecDotSpeeds_pix,size(sAllDots.vecBoundingRect));    %     sAllDots.vecReversalFrame = NaN(size(sAllDots.vecBoundingRect));
-    sAllDots.vecReversalFrame = NaN(size(sAllDots.vecBoundingRect));
+
+
 
 
 end

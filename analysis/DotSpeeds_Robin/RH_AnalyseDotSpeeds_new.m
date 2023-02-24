@@ -37,7 +37,7 @@ end
 %% set parameters
 sParams = struct;
 sParams.strStimulus = 'dot_speeds';
-sParams.strArea = 'superior colliculus motor';
+sParams.strArea = 'superior colliculus';
 sParams.boolUseOnlyGoodUnits = false<0.25;
 sParams.dblMaxAbsNonStationarity = 0.25; %indicates how unit's spikes are distbuted wihtin recording (dbl, [0 1])
 sParams.dblMaxViolations1ms = 0.25; %<1 means that unit shows a refractory period (the closer to zero, the better)

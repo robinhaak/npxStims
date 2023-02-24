@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 17 January 2023
+%Robin Haak, last update February 10th 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,9 +10,9 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true;
-boolUseNI = true;
-boolDebug = false;
+boolUseSGL = false;
+boolUseNI = false;
+boolDebug =  false;
 
 %defaults
 dblPupilLightMultiplier = 1; %strength of infrared LEDs
@@ -108,23 +108,25 @@ fprintf('Saving output in directory %s;\n',strLogDir); %no textures are loaded f
 %% query user for stimulus set & location of the response zone/receptive field
 %stimulus set
 fprintf('--Select stimulus set--\n')
-fprintf('\nAvailable sets:\n(1)"dot_grid"\n(2)"dot_variations"\n(3)"dot_speeds"\n(4)"dot_reversal"\n\n');
+fprintf(['\nAvailable sets:\n(1)"dot_grid"\n<strong>(2)"dot_variations"</strong>\n<strong>' ...
+    '(3)"dot_speeds"</strong>\n(4)"dot_reversal"\n<strong>(5)"map_horiz_rf"</strong>\n\n']);
 intStimSet = input('intStimSet= ');
 sStimParams.intStimSet = intStimSet;
 
 %response field
-if sStimParams.intStimSet ~= 1
-    fprintf('\n--Estimated response zone--\n')
-    sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
+if sStimParams.intStimSet ~= 1 
+    fprintf('\n--Estimated response field--\n')
     sStimParams.intRespPosY_pix = round(input('intRespPosY_pix= ')); % pix; y screen pos.
-    if sStimParams.intStimSet ~= 3 %not relevant for dot_speed
+    if sStimParams.intStimSet ~= [3 5] %not relevant for dot_speed, map_horiz_rf
+        sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
         sStimParams.intRespSize_pix = round(input('intRespSize_pix= ')); % pix; diameter of the response zone
     else
+        sStimParams.intRespPosX_pix = 0;
         sStimParams.intRespSize_pix = NaN;
     end
 else
-    sStimParams.intRespPosX_pix = NaN;
-    sStimParams.intRespPosY_pix = NaN;
+    sStimParams.intRespPosX_pix = 0;
+    sStimParams.intRespPosY_pix = 0;
     sStimParams.intRespSize_pix = NaN;
 end
 
@@ -225,7 +227,6 @@ try
         (sStimParams.intScreenHeight_pix/sStimParams.dblScreenHeight_deg)]);
     sStimParams.intWhite = WhiteIndex(sStimParams.ptrWindow);
 
-
     %% MAXIMIZE PRIORITY
     intOldPriority = 0;
     if boolDebug == 0
@@ -254,12 +255,12 @@ try
 
     %if intStimSet='dot_reversal_2' and 'classic' condition is included,
     %present classic and reversal at the same rate
-    if intStimSet == 5 && sum(strcmp(sAllDots.vecStimName(:),'classic'))>0
-        vecClassicIds = sAllDots.stimID(strcmp(sAllDots.vecStimName(:),'classic'));
-        vecStimID = [sAllDots.stimID repmat(vecClassicIds,[1 (length(sAllDots.stimID)-2*length(vecClassicIds))/2])];
-    else
+%     if intStimSet == 5 && sum(strcmp(sAllDots.vecStimName(:),'classic'))>0
+%         vecClassicIds = sAllDots.stimID(strcmp(sAllDots.vecStimName(:),'classic'));
+%         vecStimID = [sAllDots.stimID repmat(vecClassicIds,[1 (length(sAllDots.stimID)-2*length(vecClassicIds))/2])];
+%     else
         vecStimID = sAllDots.stimID;
-    end
+%     end
     %build structEP (trial-based output)
     structEP = struct;
     structEP.strExpType = sStimParams.strStimType;
@@ -537,7 +538,7 @@ catch ME
 
         %save data
         structEP.sStimParams = sStimParams;
-        structEP.sAllDots = sAllDots; %#ok<STRNU>
+        structEP.sAllDots = sAllDots;
         if ~exist('sParamsSGL','var'),sParamsSGL=[];end
         save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
 

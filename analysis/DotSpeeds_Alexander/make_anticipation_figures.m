@@ -8,14 +8,14 @@
 record.lab = 'Heimellab';
 record.project = 'Anticipation';
 record.dataset = '22.35.03';
-record.subject = '83554';
+record.subject = '85235'; %'83554';
 record.condition = '';
 record.stimulus = 'MovingDots';
 record.setup = 'Neuropixels';
 record.investigator = 'RobinHaak';
-record.date = '20221122';
+record.date = '20230117'; %'20221122';
 record.logfile = '';
-record.sessionid = '20221122_83554_15_55_45_RH_MovingDots';
+record.sessionid = '20230117_85235_12_15_45_RH_MovingDots'; %'20221122_83554_15_55_45_RH_MovingDots';
 record.sessnr = NaN;
 record.version = '1.0';
 record.path = '';
