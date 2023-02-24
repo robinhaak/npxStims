@@ -102,7 +102,7 @@ end
 %record = db(find_record(db,'subject=85235,sessionid=20230117_85235_12_15_45_RH_MovingDots'));
 %record = db(find_record(db,'subject=85235,sessionid=20230117_singleUnits_new'));
 record = db(find_record(db,'subject=85235,sessionid=20230118_singleUnits,stimulus=MovingDots'));
-record = db(find_record(db,'subject=85235,sessionid=20230119_singleUnits,stimulus=MovingDots'));
+%record = db(find_record(db,'subject=85235,sessionid=20230119_singleUnits,stimulus=MovingDots'));
 %record = db(find_record(db,'subject=85234,sessionid=20230118_singleUnits,stimulus=MovingDots'));
 %record = db(find_record(db,'subject=85234,sessionid=20230119_singleUnits,stimulus=MovingDots'));
 
@@ -159,8 +159,11 @@ set(gca,'YDir','reverse');
 
 %% Figure Patch peak times versus Depth
 record = db(find_record(db,'subject=85235,sessionid=20230117_85235_13_15_16_RH_GratingPatches,date=20230117'));
+record = db(find_record(db,'subject=85235,sessionid=20230117_singleUnits,stimulus=GratingPatches'));
+%record = db(find_record(db,'subject=85235,sessionid=20230118_singleUnits,stimulus=GratingPatches'));
+%record = db(find_record(db,'subject=85235,sessionid=20230119_singleUnits,stimulus=GratingPatches'));
 
-indResponsive = [record.measures.dblResponseMax]>2; 
+indResponsive = [record.measures.boolResponsive]; 
 vecDepth = [record.measures.dblDepth_um]; 
 vecPeakTime = [record.measures.dblPeakTime]; 
 

@@ -122,11 +122,11 @@ vecStimID = structEP.vecStimID;
 
 % structEP.sAllDots contains all unique stimuli
 record.sStimuli = structEP.sAllDots;
-record.intScreenWidth_pix = structEP.sStimParams.intScreenWidth_pix;
+%record.intScreenWidth_pix = structEP.sStimParams.intScreenWidth_pix;
 
 vecSpeed_pix = record.sStimuli.vecSpeed_pix;
 
-vecStimStartX_pix = cellfun( @(x) mean([x(1,1),x(3,1)]), record.sStimuli.vecBoundingRect) - record.intScreenWidth_pix/2 ; % center of screen is 0
+vecStimStartX_pix = cellfun( @(x) mean([x(1,1),x(3,1)]), record.sStimuli.vecBoundingRect) - structEP.sStimParams.intScreenWidth_pix/2 ; % center of screen is 0
 record.sStimuli.vecStimStartX_pix = vecStimStartX_pix;
 
 logmsg('Assuming Left and right stimuli are in the same order for delta T calculation');
@@ -208,43 +208,10 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
             if sParams.boolFitGaussian && measure.vecZetaP(i)<0.05
                 logmsg(['Fitting ' num2str(i) ' of ' num2str(length(structEP.sAllDots.stimID))]);
                 
-                % fit erf to cumulative response
-                intNumSpikes = length(sZETA.vecSpikeT);
-                dblMaxTime = sZETA.vecSpikeT(end);
-                x = sZETA.vecSpikeT;
-                y = (1:intNumSpikes)';
-                
-                dblSpont = measure.dblRateSpontaneous*vecNRepeats(i);
-                dblPeakTime = sRate.dblPeakTime;
-                if isnan(dblPeakTime)
-                    dblPeakTime = dblMaxTime/2;
-                end
-                
-                P0 = [ 0     100        dblPeakTime   1          dblSpont];
-                lb = [-10       0          0                  0                 0];
-                ub = [ 10  intNumSpikes   dblMaxTime      dblMaxTime         3*dblSpont+5*vecNRepeats(i)];
-                model = @(P,x) P(1) + P(5)*x + P(2)*0.5*(1+erf( (x-P(3))/P(4))) ;
-                try
-                    opt = optimoptions('lsqcurvefit');
-                    opt.Display = 'none';
-                    Pfit = lsqcurvefit(model,P0,x,y,lb,ub,opt);
-                catch me
-                    me.message
-                    keyboard
-                end
-                measure.vecPeakTime(i) = Pfit(3);
-                measure.vecOnsetTime(i) = Pfit(3) - 2*Pfit(4);
-                %                 logmsg(['Erf fit peak time = '  num2str(measure.vecPeakTime(i))]);
-                %                 logmsg(['Erf fit onset time = '  num2str(measure.vecOnsetTime(i))]);
-                if 1
-                    figure;
-                    plot(x,y,'.')
-                    hold on;
-                    modelpred = model(Pfit,x);
-                    plot(x,modelpred,'r-');
-                    plot(measure.vecPeakTime(i)*[1 1],ylim,'-b');
-                    plot(measure.vecOnsetTime(i)*[1 1],ylim,'-g');
-                end 
+                [measure.vecPeakTime(i),measure.vecOnsetTime(i)] = ...
+                    fitGaussianPSTH( sZETA.vecSpikeT, measure.dblRateSpontaneous*vecNRepeats(i), ...
+                    sRate.dblPeakTime, verbose );
+
                 
 %                 % fit gaussian to response
 %                 strGaussEqn = 'a*exp(-((x-b)/sigma)^2/2)';
@@ -359,7 +326,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     %   when only spikes are occuring at tLeft and tRight, this simplifies
     %   to earlier expression.
     
-    dblH = record.intScreenWidth_pix/2;
+    dblH = structEP.sStimParams.intScreenWidth_pix/2;
     vecSLeft = measure.vecNSpikes(indLeft) -measure.dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
     vecSRight = measure.vecNSpikes(indRight) -measure.dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
     vecMLeft =   cellfun(@sum,measure.cellSpikeT(indLeft))  - 1/2 * measure.dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
