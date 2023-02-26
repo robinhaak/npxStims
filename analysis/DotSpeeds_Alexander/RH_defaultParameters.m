@@ -1,5 +1,5 @@
-function sParams = rh_defaultParameters()
-%rh_defaultParameters
+function sParams = RH_defaultParameters( )
+%RH_defaultParameters
 %
 %  sStimParamSettings = rh_defaultParameters()
 %
@@ -13,6 +13,13 @@ sParams.boolOnlyUseMiddleRangeSpeeds = true;
 sParams.boolUseResponseOnset = true;
 sParams.boolFitGaussian = true; % compute peak and onset times based on Gaussian fit
 sParams.dblThresholdResponsiveZetaP = 0.05;
+sParams.dblOnsetResponseThreshold = 0.5;
+
+% Color scheme
+sParams.clrLeft = [1 0 0];
+sParams.clrRight = [0 0 1];
+
+
 
 if exist('processparams_local.m','file')
     sOldParams = sParams;

@@ -171,17 +171,33 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     [measure.dblPValue,measure.boolResponsive] = myanova(vecRate,vecStimIdx);
     
     % Analyse responses for peak location
+    measure.vecPeakLocationSpikeT = [];
     measure.dblPeakRate = NaN;
     measure.dblPeakTime = NaN;
+    measure.dblOnsetTime = NaN;
     [measure.dblResponseMax,indLoc] = max(measure.matAvgResp(:));
 
-    [measure.dblZetaP,~,sRate,~] = zetatest(vecSpikesCh,...
+    [measure.dblZetaP,sZETA,sRate,~] = zetatest(vecSpikesCh,...
         vecStimOnTime(vecStimIdx == indLoc),dblDuration); % ~ is essential for correct output
-    if ~isempty(sRate)
+    
+    measure.vecPeakLocationSpikeT = [];
+    
+    if ~isempty(sRate) && measure.boolResponsive
+        measure.vecPeakLocationSpikeT = sZETA.vecSpikeT;
         measure.dblPeakRate = sRate.dblPeakRate;
         measure.dblPeakTime = sRate.dblPeakTime;
-    end
 
+        if sParams.boolFitGaussian
+            intNRepeats = sum(vecStimIdx == indLoc);
+
+            [measure.dblPeakTime,measure.dblOnsetTime] = ...
+                fitGaussianPSTH( measure.vecPeakLocationSpikeT, ...
+                measure.dblRateSpontaneous*intNRepeats, ...
+                sRate.dblPeakTime, false, true, verbose );
+        else 
+            logmsg('Computing onset time is not yet implemented.')
+        end
+    end
 
     if indMeasures == 1
         measures = measure;
