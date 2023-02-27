@@ -134,8 +134,6 @@ indMeasures = 0;
 dblDuration = mode(structEP.vecTrialStimOffSecs - structEP.vecTrialStimOnSecs);
 
 for c = 1:length(vecClustersToAnalyze) % over clusters or channels
-
-
     logmsg(['Computing cluster/channel index ' num2str(vecClustersToAnalyze(c)) ...
         ' (' num2str(c) ' of '  num2str(intNumClusters) '), ' num2str(length(vecSpikeTimesOfCluster{c})) ' spikes'])
     if length(vecSpikeTimesOfCluster{c}) < 1
@@ -162,13 +160,41 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
 
     end
     matAvgResp = NaN(numel(vecY_pix),numel(vecX_pix));
+    matPValue = NaN(numel(vecY_pix),numel(vecX_pix));
 
     for intLoc = vecUniqueStims
-        matAvgResp(intLoc) = mean(vecRate(vecStimIdx==intLoc));
+        vecRateForLoc = vecRate(vecStimIdx==intLoc);
+        vecRateOtherLocs = vecRate(vecStimIdx~=intLoc);
+        matAvgResp(intLoc) = mean(vecRateForLoc);
+        % Uncorrected test
+        matPValue(intLoc) = ranksum(vecRateForLoc,vecRateOtherLocs,'tail','right');
     end
     measure.matAvgResp = matAvgResp - measure.dblRateSpontaneous;
+    measure.matPValue = matPValue;
 
     [measure.dblPValue,measure.boolResponsive] = myanova(vecRate,vecStimIdx);
+
+    measure.matSignificant = zeros(size(matPValue));
+    measure.dblXRFLeft_pix = NaN;
+    measure.dblXRFRight_pix = NaN;
+    if measure.boolResponsive 
+        % Only get largest connect image
+        matSignificant = matPValue < 0.025;
+        sComponents = bwconncomp(matSignificant);
+        vecSizes = cellfun(@numel, sComponents.PixelIdxList);
+        [~, idx] = max(vecSizes);
+        mask = zeros(size(matSignificant));
+        mask(sComponents.PixelIdxList{idx}) = 1;
+        measure.matSignificant = mask;
+
+
+        vecXLeftBorder_pix = unique(vecUniqueRects(:,1));
+        vecXRightBorder_pix = unique(vecUniqueRects(:,3));
+
+        measure.dblXRFLeft_pix = vecXLeftBorder_pix(find(max(mask),1)) - structEP.sStimParams.intScreenWidth_pix/2;
+        measure.dblXRFRight_pix = vecXRightBorder_pix(find(max(mask),1,'last')) - structEP.sStimParams.intScreenWidth_pix/2;
+
+    end
     
     % Analyse responses for peak location
     measure.vecPeakLocationSpikeT = [];
@@ -183,7 +209,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     measure.vecPeakLocationSpikeT = [];
     
     if ~isempty(sRate) && measure.boolResponsive
-        measure.vecPeakLocationSpikeT = sZETA.vecSpikeT;
+        measure.vecPeakLocationSpikeT = sZETA.vecSpikeT(2:end-1);
         measure.dblPeakRate = sRate.dblPeakRate;
         measure.dblPeakTime = sRate.dblPeakTime;
 
@@ -202,17 +228,33 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     if indMeasures == 1
         measures = measure;
     else
-        measures(indMeasures) = measure;
+%         try
+%             measures(indMeasures) = measure;
+%         catch me
+%             switch me.identifier
+%                 case 'MATLAB:catenate:structFieldBad'
+%                     logmsg('Measures structure has changed since previous analysis. Removing previous results.');
+%                 otherwise
+%                     errormsg(me.message);
+%             end
+%             measures = [];
+            measures(indMeasures) = measure;
+%         end
     end
 
 end % cluster c
 
 
-
-
-
-
 record.measures = measures;
+
+
+% Add dots results
+h_db = get_fighandle('Neuropixels database*');
+sUserData = get(h_db,'userdata');
+db = sUserData.db;
+record = analyse_add_dots_to_patches( record, db, true);
+
+
 
 logmsg(['Analyzed ' recordfilter(record)]);
 end

@@ -171,66 +171,28 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         vecDuration(i) = mean(vecStimOffTime(indStims) - vecStimOnTime(indStims));
         vecNRepeats(i) = length(indStims);
         
-        [dblZetaP,sZETA,sRate,~] = zetatest(vecSpikeTimesOfCluster{c},...
+%         [dblZetaP,sZETA,sRate,~] = zetatest(vecSpikeTimesOfCluster{c},...
+%             vecEventStarts,vecDuration(i)+dblIntertrialInterval); % ~ is essential for correct output
+       [ dblZetaP,sZETA] = zetatest(vecSpikeTimesOfCluster{c},...
             vecEventStarts,vecDuration(i)+dblIntertrialInterval); % ~ is essential for correct output
-       
+    %   logmsg(['Computed zeta p:' num2str(dblZetaP)]);
         
         
         measure.vecZetaP(i) = dblZetaP;
-        measure.cellSpikeT{i} =sZETA.vecSpikeT(2:end-1);  % spiketimes, ZETA has padded extra points at beginning and end
-        measure.vecNSpikes(i) = length(measure.cellSpikeT{i} );
+        measure.cellSpikeTimes{i} =sZETA.vecSpikeT(2:end-1);  % spiketimes, ZETA has padded extra points at beginning and end
+        measure.vecNSpikes(i) = length(measure.cellSpikeTimes{i} );
         
-        measure.cellRate{i} = [];
-        measure.cellTime{i} = []; 
-        measure.vecPeakTime(i) = NaN;
-        measure.vecPeakRate(i) = NaN;
-        
-        if sParams.boolSmooth && ~isempty(vecSpikeTimesOfCluster{c})
-            dblBase = 1.5;
-            intSmoothSd = 2;
-            dblMinScale = round(log(1/10) / log(dblBase));
-            [sRate.vecT,sRate.vecRate,~] = getIFR(vecSpikeTimesOfCluster{c},vecEventStarts,vecDuration(i)+dblIntertrialInterval,intSmoothSd,dblMinScale,dblBase,false);
-            if ~isempty(sRate.vecT)
-                [sRate.dblPeakRate,ind] = max(sRate.vecRate);
-                sRate.dblPeakTime = sRate.vecT(ind);
-            else
-                sRate = [];
-            end
-        end
+        [vecSpikeCount,vecEdges] = histcounts(measure.cellSpikeTimes{i},'BinWidth',sParams.dblBinWidth);
+        vecCenters = (vecEdges(1:end-1)+vecEdges(2:end))/2;
+        [dblPeak,indPeak] = max(vecSpikeCount);
 
-        if ~isempty(sRate)
-            measure.cellRate{i} = sRate.vecRate;
-            measure.cellTime{i} = sRate.vecT;
-            measure.vecPeakTime(i) = sRate.dblPeakTime;
-            measure.vecPeakRate(i) = sRate.dblPeakRate;
-            measure.vecOnsetTime(i) = sRate.dblPeakTime;
-            
-            if sParams.boolFitGaussian && measure.vecZetaP(i)<0.05
-                logmsg(['Fitting ' num2str(i) ' of ' num2str(length(structEP.sAllDots.stimID))]);
-                
-                [measure.vecPeakTime(i),measure.vecOnsetTime(i)] = ...
-                    fitGaussianPSTH( sZETA.vecSpikeT, measure.dblRateSpontaneous*vecNRepeats(i), ...
-                    sRate.dblPeakTime,true, false, verbose );
 
-            else
-                
-                
-                dblThreshold = measure.dblRateSpontaneous + sParams.dblOnsetResponseThreshold*(measure.vecPeakRate(i)-measure.dblRateSpontaneous);
-                ind = find(measure.cellRate{i}>dblThreshold,1);
-                if isempty(ind) || ind==1 % probably spontaneous rate is wrong
-                    dblRateSpontaneous = median(measure.cellRate{i});
-                    dblThreshold = dblRateSpontaneous + sParams.dblOnsetResponseThreshold*(measure.vecPeakRate(i)-dblRateSpontaneous);
-                    ind = find(measure.cellRate{i}>dblThreshold,1);
-                end
-                if ~isempty(ind)
-                    measure.vecOnsetTime(i) = measure.cellTime{i}(ind);
-                else
-                    measure.vecOnsetTime(i) = NaN;
-                end
-            end
-            
-        end
-        measure.vecMeanRate(i) = (length(measure.cellSpikeT{i}))/vecDuration(i)/vecNRepeats(i);
+
+        measure.vecPeakTime(i) = vecCenters(indPeak);
+        measure.vecPeakRate(i) = dblPeak / sParams.dblBinWidth / vecNRepeats(i);
+        measure.vecOnsetTime(i) = NaN;
+        measure.vecOnsetTime(i) = computeOnsetFromSpikeCount( measure.cellSpikeTimes{i} );
+        measure.vecMeanRate(i) = (length(measure.cellSpikeTimes{i}))/vecDuration(i)/vecNRepeats(i);
         
         
         
@@ -301,8 +263,8 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     dblH = structEP.sStimParams.intScreenWidth_pix/2;
     vecSLeft = measure.vecNSpikes(indLeft) -measure.dblRateSpontaneous  * vecDuration(indLeft) .* vecNRepeats(indLeft);
     vecSRight = measure.vecNSpikes(indRight) -measure.dblRateSpontaneous * vecDuration(indRight) .* vecNRepeats(indRight);
-    vecMLeft =   cellfun(@sum,measure.cellSpikeT(indLeft))  - 1/2 * measure.dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
-    vecMRight = cellfun(@sum,measure.cellSpikeT(indRight)) - 1/2 * measure.dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
+    vecMLeft =   cellfun(@sum,measure.cellSpikeTimes(indLeft))  - 1/2 * measure.dblRateSpontaneous * vecDuration(indLeft).^2 .* vecNRepeats(indLeft);
+    vecMRight = cellfun(@sum,measure.cellSpikeTimes(indRight)) - 1/2 * measure.dblRateSpontaneous * vecDuration(indRight).^2 .* vecNRepeats(indRight);
     
     measure.vecMeanDeltaT = 1/2 * (vecMLeft ./ vecSLeft + vecMRight ./ vecSRight + ...
         vecStimStartX_pix(indLeft)./ vecSpeed_pix(indLeft) - vecStimStartX_pix(indRight)./ vecSpeed_pix(indRight) )   ;
@@ -383,8 +345,6 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.cellRate = {};
     end
     
-    measure = rmfield(measure,'cellSpikeT'); % to reduce database size
-
     if indMeasures == 1
         measures = measure;
     else
@@ -410,8 +370,13 @@ if isfield(record,'measures') && ~isempty(record.measures) && length(measures)>=
     end
 end
 
-
 record.measures = measures;
+
+% Add dots results
+h_db = get_fighandle('Neuropixels database*');
+sUserData = get(h_db,'userdata');
+db = sUserData.db;
+record = analyse_add_patches_to_dots( record, db, true);
 
 logmsg(['Analyzed ' recordfilter(record)]);
 end

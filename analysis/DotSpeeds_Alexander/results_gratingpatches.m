@@ -37,13 +37,13 @@ for m = 1:length(selected_measures)
     figure('Name',['Grating ' num2str(measures.intIndex)],'NumberTitle','off');
     
     % Figure receptive field 
-    subplot(2,1,1);
+    subplot(2,2,1);
     hold on;
     title(['Channel: ' num2str(measures.intIndex)]);
     imagesc(vecX_pix_interp,vecY_pix_interp,measures.matAvgResp);
     colormap gray
-    set(gca, 'YDir','reverse');
-    cb = colorbar;
+    %set(gca, 'YDir','reverse');
+    cb = colorbar('location','southoutside');
     cb.Label.String = 'spks/s';
     axis image off
     if isfield(measures,'dblXRFLeftFromOnsetFromMovingDots_pix')
@@ -53,14 +53,22 @@ for m = 1:length(selected_measures)
        plot(measures.dblXRFRightFromMovingDots_pix*[1 1],ylim,'-','Color',sParams.clrRight);
         
     end
+    contour(vecX_pix_interp,vecY_pix_interp,measures.matSignificant, [0.5 0.5], 'Color',sParams.clrPatches, 'LineWidth', 2);
+    plot(measures.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
+    plot(measures.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
     
     
-    
-    subplot(2,1,2);
-        histogram(measures.vecPeakLocationSpikeT,'BinWidth',0.010);
+    subplot(2,2,3);
+    histogram(measures.vecPeakLocationSpikeT,'BinWidth',0.010,'FaceColor',0.7*[1 1 1],'EdgeColor',0.7*[1 1 1]);
     hold on;
-    plot(measures.dblPeakTime*[1 1],ylim,'-b');
-    plot(measures.dblOnsetTime*[1 1],ylim,'-g');
+    plot(measures.dblPeakTime*[1 1],ylim,'-','color',sParams.clrPatches);
+    plot(measures.dblOnsetTime*[1 1],ylim,'--','color',sParams.clrPatches);
+
+    plot(measures.dblDeltaTLeftFromOnsetFromMovingDots*[1 1],ylim,'--','color',sParams.clrLeft);
+    plot(measures.dblDeltaTRightFromOnsetFromMovingDots*[1 1],ylim,'-.','color',sParams.clrRight);
+    plot(measures.dblDeltaTLeftFromMovingDots*[1 1],ylim,'-','color',sParams.clrLeft);
+    plot(measures.dblDeltaTRightFromMovingDots*[1 1],ylim,'-','color',sParams.clrRight);
+
     axis square 
     box off
     xlabel('Time (s)');

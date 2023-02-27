@@ -13,8 +13,9 @@ logmsg('Loaded datebase as ''db''. Access with experiment_db(db).')
 return
 
 %% Combine moving dots and grating patches results
-for i=2:length(db)
+for i=1:length(db)
    db(i) = analyse_add_dots_to_patches( db(i), db, true);
+   db(i) = analyse_add_patches_to_dots( db(i), db, true);
 end    
 
 

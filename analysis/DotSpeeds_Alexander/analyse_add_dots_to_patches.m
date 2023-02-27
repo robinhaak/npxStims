@@ -8,6 +8,11 @@ function record = analyse_add_dots_to_patches( record, db, verbose)
 if nargin<3 || isempty(verbose)
     verbose = true;
 end
+if nargin<2 || isempty(db)
+    h_db = get_fighandle('Neuropixels database*');
+    sUserData = get(h_db,'userdata');
+    db = sUserData.db;
+end
 
 if ~strcmp(record.stimulus,'GratingPatches')
     return
@@ -37,6 +42,11 @@ for i = 1:length(measures)
     measures(i).dblXRFRightFromOnsetFromMovingDots_pix = dotsmeasures(ind).dblXRFRightFromOnset_pix;
     measures(i).dblXRFLeftFromMovingDots_pix = dotsmeasures(ind).dblXRFLeft_pix;
     measures(i).dblXRFRightFromMovingDots_pix = dotsmeasures(ind).dblXRFRight_pix;
+    measures(i).dblXRFRightFromMovingDots_pix = dotsmeasures(ind).dblXRFRight_pix;
+    measures(i).dblDeltaTLeftFromMovingDots = dotsmeasures(ind).dblDeltaTLeft;
+    measures(i).dblDeltaTRightFromMovingDots = dotsmeasures(ind).dblDeltaTRight;
+    measures(i).dblDeltaTLeftFromOnsetFromMovingDots = dotsmeasures(ind).dblDeltaTLeftFromOnset;
+    measures(i).dblDeltaTRightFromOnsetFromMovingDots = dotsmeasures(ind).dblDeltaTRightFromOnset;
 end
 record.measures = measures;
 logmsg(['Add dots results to ' recordfilter(record)]);
