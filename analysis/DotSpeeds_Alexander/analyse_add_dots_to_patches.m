@@ -33,8 +33,16 @@ if length(ind)>1
 end
 dotsrecord = db(ind);
 
+dblDotsY = (dotsrecord.sStimuli.vecBoundingRect{1}(2,1) + dotsrecord.sStimuli.vecBoundingRect{1}(4,1) )/2;
+
 measures = record.measures;
 dotsmeasures = dotsrecord.measures;
+if isempty(dotsmeasures)
+    logmsg(['No measures for ' recordfilter(dotsrecord)]);
+    return
+end
+
+
 dotsindex = [dotsmeasures.intIndex];
 for i = 1:length(measures)
     ind = find(dotsindex == measures(i).intIndex);
@@ -47,6 +55,7 @@ for i = 1:length(measures)
     measures(i).dblDeltaTRightFromMovingDots = dotsmeasures(ind).dblDeltaTRight;
     measures(i).dblDeltaTLeftFromOnsetFromMovingDots = dotsmeasures(ind).dblDeltaTLeftFromOnset;
     measures(i).dblDeltaTRightFromOnsetFromMovingDots = dotsmeasures(ind).dblDeltaTRightFromOnset;
+    measures(i).dblDotsY = dblDotsY;
 end
 record.measures = measures;
 logmsg(['Add dots results to ' recordfilter(record)]);

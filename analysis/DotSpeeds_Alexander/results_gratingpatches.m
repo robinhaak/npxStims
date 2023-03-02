@@ -56,7 +56,8 @@ for m = 1:length(selected_measures)
     contour(vecX_pix_interp,vecY_pix_interp,measures.matSignificant, [0.5 0.5], 'Color',sParams.clrPatches, 'LineWidth', 2);
     plot(measures.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
     plot(measures.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
-    
+    plot([-960 960],measures.dblDotsY*[1 1],'-','color',[1 1 0],'LineWidth',1);
+
     
     subplot(2,2,3);
     histogram(measures.vecPeakLocationSpikeT,'BinWidth',0.010,'FaceColor',0.7*[1 1 1],'EdgeColor',0.7*[1 1 1]);
@@ -68,6 +69,7 @@ for m = 1:length(selected_measures)
     plot(measures.dblDeltaTRightFromOnsetFromMovingDots*[1 1],ylim,'-.','color',sParams.clrRight);
     plot(measures.dblDeltaTLeftFromMovingDots*[1 1],ylim,'-','color',sParams.clrLeft);
     plot(measures.dblDeltaTRightFromMovingDots*[1 1],ylim,'-','color',sParams.clrRight);
+
 
     axis square 
     box off

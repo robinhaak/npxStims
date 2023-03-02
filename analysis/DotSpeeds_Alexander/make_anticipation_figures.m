@@ -267,7 +267,7 @@ indPutativeAnticipatory = find( ...
     (vecAllDeltaTLeftFromOnset < vecAllOnsetTimeGratingPatches - dblMinAnticipationTime & vecAllDeltaTLeftFromOnset < 0.1) );
 
 %%
-s = 2;
+s = 6;
 cellSessions{s}
 ind = vecAllSessionIndex(indPutativeAnticipatory) == s;
 vecAllIndex(indPutativeAnticipatory(ind))
