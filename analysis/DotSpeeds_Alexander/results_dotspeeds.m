@@ -100,6 +100,7 @@ for m = 1:length(selected_measures)
     %     plot_rate_vs_time(measures,record,5)
 
     subplot(3,2,3) % Corrected cumulative spikes
+    plot_rate_vs_time(measures,globalrecord,2); hold on
     plot_corcumspikes_vs_time(2,measures,record,sParams)
 
     subplot(3,2,4) % Corrected cumulative spikes
@@ -151,26 +152,29 @@ logmsg('''measures'' and ''globalrecord'' available in workspace');
 end
 
 function    plot_rate_vs_time(measures,record,indLeft)
+vecSpeed_pix = record.sStimuli.vecSpeed_pix;
 
 indRight = indLeft + 6;
+vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indLeft) + measures.cellEdges{indLeft}*vecSpeed_pix(indLeft);
+histogram(measures.cellSpikeCounts{indLeft},vecStimPos_pix,'FaceColor',0.7*[1 1 1],'EdgeColor',0.7*[1 1 1]);
 
-vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indLeft) + measures.cellSpikeTimes{indLeft}*vecSpeed_pix(indLeft);
-plot(vecStimPos_pix,measures.cellRate{indLeft},'-','Color',sParams.clrLeft);
-vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indRight) - measures.cellSpikeTimes{indRight}*vecSpeed_pix(indRight);
-plot(vecStimPos_pix,measures.cellRate{indRight},'-','Color',sParams.clrRight);
-
-dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(indLeft) +  measures.vecPeakTime(indLeft)*vecSpeed_pix(indLeft);
-plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',sParams.clrLeft);
-dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(indRight) -  measures.vecPeakTime(indRight)*vecSpeed_pix(indRight);
-plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',sParams.clrRight);
-dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(indLeft) +  measures.vecOnsetTime(indLeft)*vecSpeed_pix(indLeft);
-plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
-dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(indRight) -  measures.vecOnsetTime(indRight)*vecSpeed_pix(indRight);
-plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',sParams.clrRight);
-
-xlabel('Stim position (pix)');
-ylabel(['Rate stim ' num2str(indLeft) ' (sp/s)']);
-xlim([-1200 1200])
+% vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indLeft) + measures.cellSpikeTimes{indLeft}*vecSpeed_pix(indLeft);
+% plot(vecStimPos_pix,measures.cellRate{indLeft},'-','Color',sParams.clrLeft);
+% vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indRight) - measures.cellSpikeTimes{indRight}*vecSpeed_pix(indRight);
+% plot(vecStimPos_pix,measures.cellRate{indRight},'-','Color',sParams.clrRight);
+% 
+% dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(indLeft) +  measures.vecPeakTime(indLeft)*vecSpeed_pix(indLeft);
+% plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',sParams.clrLeft);
+% dblStimPosAtResponsePeak_pix =  record.sStimuli.vecStimStartX_pix(indRight) -  measures.vecPeakTime(indRight)*vecSpeed_pix(indRight);
+% plot(dblStimPosAtResponsePeak_pix*[1 1],ylim,'-','Color',sParams.clrRight);
+% dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(indLeft) +  measures.vecOnsetTime(indLeft)*vecSpeed_pix(indLeft);
+% plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
+% dblStimPosAtResponseOnset_pix =  record.sStimuli.vecStimStartX_pix(indRight) -  measures.vecOnsetTime(indRight)*vecSpeed_pix(indRight);
+% plot(dblStimPosAtResponseOnset_pix*[1 1],ylim,'--','Color',sParams.clrRight);
+% 
+% xlabel('Stim position (pix)');
+% ylabel(['Rate stim ' num2str(indLeft) ' (sp/s)']);
+% xlim([-1200 1200])
 
 end
 

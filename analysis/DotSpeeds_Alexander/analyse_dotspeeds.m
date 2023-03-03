@@ -36,9 +36,9 @@ end
 
 sParams = RH_defaultParameters();
 
-if verbose
-    record = RH_analyse_synchronization(record,verbose);
-end
+% if verbose
+%    record = RH_analyse_synchronization(record,verbose);
+% end
 
 %% Load data
 % check which channels or clusters to analyse
@@ -52,9 +52,11 @@ end
 
 strLog = fullfile(strSessionPath,[record.sessionid '.mat']);
 sVars = whos('-file',strLog);
-if contains('sCluster',{sVars.name})
+if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
     % single unit data
-    load(strLog,'sCluster','structEP','sSynthData'); %rm sSynthData later
+    %load(strLog,'sCluster','structEP','sSynthData'); %rm sSynthData later
+        load(strLog,'sSynthData'); %rm sSynthData later
+
     
 
     cellExpType = cellfun(@(x) x.structEP.strExpType, sSynthData.cellStim, 'UniformOutput', false);
@@ -185,6 +187,8 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         [vecSpikeCount,vecEdges] = histcounts(measure.cellSpikeTimes{i},'BinWidth',sParams.dblBinWidth);
         vecCenters = (vecEdges(1:end-1)+vecEdges(2:end))/2;
         [dblPeak,indPeak] = max(vecSpikeCount);
+        measure.cellSpikeCounts{i} = vecSpikeCount;
+        measure.cellEdges{i}=vecEdges;
 
 
 
@@ -372,11 +376,11 @@ end
 
 record.measures = measures;
 
-% Add dots results
-h_db = get_fighandle('Neuropixels database*');
-sUserData = get(h_db,'userdata');
-db = sUserData.db;
-record = analyse_add_patches_to_dots( record, db, true);
+% % Add dots results
+% h_db = get_fighandle('Neuropixels database*');
+% sUserData = get(h_db,'userdata');
+% db = sUserData.db;
+% record = analyse_add_patches_to_dots( record, db, true);
 
 logmsg(['Analyzed ' recordfilter(record)]);
 end

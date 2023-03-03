@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 17 January 2023
+%Robin Haak, last update: 3 March '23
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true;
-boolUseNI = true;
+boolUseSGL = false;
+boolUseNI = false;
 boolDebug = false;
 
 %defaults
@@ -75,8 +75,8 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.dblBackground = 0.5; %background intensity (dbl, [0 1])
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
     sStimParamsSettings.dblSecsInitialBlank = 5; % s
-    sStimParamsSettings.dblSecsPreBlank = 0.25; % s
-    sStimParamsSettings.vecSecsPostBlank = [0.75 0.75]; %[0.75 1.25]; % s, random within range
+    sStimParamsSettings.dblSecsPreBlank = 0.5; %0.25; % s
+    sStimParamsSettings.vecSecsPostBlank = [0.5 0.5]; %[0.75 0.75]; %[0.75 1.25]; % s, random within range
     sStimParamsSettings.dblSecsEndBlank = 5; %s
 else
     % evaluate and assign pre-defined values to structure
@@ -108,16 +108,17 @@ fprintf('Saving output in directory %s;\n',strLogDir); %no textures are loaded f
 %% query user for stimulus set & location of the response zone/receptive field
 %stimulus set
 fprintf('--Select stimulus set--\n')
-fprintf('\nAvailable sets:\n(1)"dot_grid"\n(2)"dot_variations"\n(3)"dot_speeds"\n(4)"dot_reversal"\n\n');
+fprintf(['\nAvailable sets (in <strong>bold</strong>):\n(1)"dot_grid"\n(2)"dot_variations"\n<strong>(3)"dot_speeds"\n</strong>(4)"dot_reversal"\n' ...
+    '<strong>(5)"flashing_dots"</strong>\n\n']);
 intStimSet = input('intStimSet= ');
 sStimParams.intStimSet = intStimSet;
 
 %response field
 if sStimParams.intStimSet ~= 1
     fprintf('\n--Estimated response zone--\n')
-    sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
-    sStimParams.intRespPosY_pix = round(input('intRespPosY_pix= ')); % pix; y screen pos.
-    if sStimParams.intStimSet ~= 3 %not relevant for dot_speed
+    sStimParams.intRespPosY_pix = round(input('intRespPosY_pix= ')); % pix; y screen pos. of respones zone
+    if sStimParams.intStimSet ~= 3 && sStimParams.intStimSet ~= 5 %not relevant for dot_speed
+        sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
         sStimParams.intRespSize_pix = round(input('intRespSize_pix= ')); % pix; diameter of the response zone
     else
         sStimParams.intRespSize_pix = NaN;
@@ -252,14 +253,14 @@ try
     %get info for each individual stimulus condition
     [sAllDots,sStimParams] = RH_CreateDotTrajectories(intStimSet,sStimParams);
 
-    %if intStimSet='dot_reversal_2' and 'classic' condition is included,
-    %present classic and reversal at the same rate
-    if intStimSet == 5 && sum(strcmp(sAllDots.vecStimName(:),'classic'))>0
-        vecClassicIds = sAllDots.stimID(strcmp(sAllDots.vecStimName(:),'classic'));
-        vecStimID = [sAllDots.stimID repmat(vecClassicIds,[1 (length(sAllDots.stimID)-2*length(vecClassicIds))/2])];
-    else
-        vecStimID = sAllDots.stimID;
-    end
+    %     %if intStimSet='dot_reversal_2' and 'classic' condition is included,
+    %     %present classic and reversal at the same rate
+    %     if intStimSet == 5 && sum(strcmp(sAllDots.vecStimName(:),'classic'))>0
+    %         vecClassicIds = sAllDots.stimID(strcmp(sAllDots.vecStimName(:),'classic'));
+    %         vecStimID = [sAllDots.stimID repmat(vecClassicIds,[1 (length(sAllDots.stimID)-2*length(vecClassicIds))/2])];
+    %     else
+    vecStimID = sAllDots.stimID;
+    %     end
     %build structEP (trial-based output)
     structEP = struct;
     structEP.strExpType = sStimParams.strStimType;
@@ -537,7 +538,7 @@ catch ME
 
         %save data
         structEP.sStimParams = sStimParams;
-        structEP.sAllDots = sAllDots; %#ok<STRNU>
+        structEP.sAllDots = sAllDots;
         if ~exist('sParamsSGL','var'),sParamsSGL=[];end
         save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL');
 

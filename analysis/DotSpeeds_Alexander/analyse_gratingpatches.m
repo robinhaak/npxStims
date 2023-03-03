@@ -13,9 +13,9 @@ end
 
 sParams = RH_defaultParameters();
 
-if verbose
-    record = RH_analyse_synchronization(record,verbose);
-end
+% if verbose
+%     record = RH_analyse_synchronization(record,verbose);
+% end
 
 %% Load data
 % check which channels or clusters to analyse
@@ -29,7 +29,7 @@ end
 
 strLog = fullfile(strSessionPath,[record.sessionid '.mat']);
 sVars = whos('-file',strLog);
-if contains('sCluster',{sVars.name})
+if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
     % single unit data
     load(strLog,'sSynthData'); %rm sSynthData later
 
