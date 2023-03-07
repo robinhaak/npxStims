@@ -2,7 +2,7 @@
 %GRATINGSPATCHES
 %show patches of (drifting) grating at different locations on the screen the screen
 %
-%Robin Haak, last update February 14th 2023
+%Robin Haak, updated March 6th 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
