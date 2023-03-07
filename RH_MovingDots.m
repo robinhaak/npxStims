@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = false;
-boolUseNI = false;
+boolUseSGL = true;
+boolUseNI = true;
 boolDebug = false;
 
 %defaults
