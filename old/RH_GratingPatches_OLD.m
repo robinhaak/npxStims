@@ -1,8 +1,7 @@
-
-%GRATINGSPATCHES
-%show patches of (drifting) grating at different locations on the screen the screen
+%RH_GRATINGSPATCHES
+%Display patches of gratings, drifting in the cardinal directions to map receptive fields
 %
-%Robin Haak, last update February 14th 2023
+%Robin Haak, last update: 17 Jnauary 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -66,18 +65,17 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 
     %stimulus parameters
-    sStimParamsSettings.dblStimulusSize_deg = 9; %6 %deg; (approximate) size of grating patches
-    sStimParamsSettings.dblSpatialFrequency_cd = 1/sStimParamsSettings.dblStimulusSize_deg;%* %0.04; %spatial frequency in cycles per degree
+    sStimParamsSettings.dblStimulusSize_deg = 6; %9; %deg; (approximate) size of grating patches
+    sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree
     sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
     sStimParamsSettings.dblSecsDuration = 0.5; %s
     sStimParamsSettings.dblSecsInitialBlank = 5; %s
     sStimParamsSettings.dblSecsPreBlank = 0.25; %s
     sStimParamsSettings.dblSecsPostBlank = 0.25; %0.5 %s
     sStimParamsSettings.dblSecsEndBlank = 5; %s
-    sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of direction or phase)
-    sStimParamsSettings.vecDirections = [0 180]; %[0 90 180 270]; %drifting directions (only [0 90 180 270], otherwise it gets funky)
+    sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of orientation)
+    sStimParamsSettings.vecDirections = [0 90 180 270]; %drifting directions, fixed
     sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is downward motion';
-    %*for size= 9deg & tf= 3Hz, spf= ~0.11c/deg, speed= 27deg/s
 
     %control variables
     sStimParamsSettings.intUseDaqDevice = 1; %ID of DAQ device
@@ -232,9 +230,7 @@ try
 
     %% prepare stimuli
     %set additional parameters
-    %sStimParams.dblPixelsPerDeg = sStimParams.intScreenWidth_pix/sStimParams.dblScreenWidth_deg;
-    sStimParams.dblPixelsPerDeg = mean([(sStimParams.intScreenWidth_pix/sStimParams.dblScreenWidth_deg) ...
-        (sStimParams.intScreenHeight_pix/sStimParams.dblScreenHeight_deg)]); %added this line(and commented the one before Feb 10th '23)
+    sStimParams.dblPixelsPerDeg = sStimParams.intScreenWidth_pix/sStimParams.dblScreenWidth_deg;
     sStimParams.intStimulusSize_pix = ceil(sStimParams.dblStimulusSize_deg*sStimParams.dblPixelsPerDeg); %pix, rounded up
     if mod(sStimParams.intStimulusSize_pix,2)==0
         intFullTexSize_pix = sStimParams.intStimulusSize_pix*2;
@@ -280,7 +276,6 @@ try
     vecStimulusPresentationIDs = []; for intRepeat = 1:sStimParams.intStimulusRepeats, ...
             vecStimulusPresentationIDs = [vecStimulusPresentationIDs vecStimulusConditionIDs(randperm(length(vecStimulusConditionIDs)))]; end %#ok<AGROW>
     intTotalTrials = length(vecStimulusPresentationIDs);
-
 
     %create randomized direction vector
     vecDirection = repmat(sStimParams.vecDirections,[1 floor(intTotalTrials/length(sStimParams.vecDirections))]);

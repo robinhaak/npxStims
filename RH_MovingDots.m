@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 3 March '23
+%Robin Haak, last update: 6 March '23
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -109,7 +109,7 @@ fprintf('Saving output in directory %s;\n',strLogDir); %no textures are loaded f
 %stimulus set
 fprintf('--Select stimulus set--\n')
 fprintf(['\nAvailable sets (in <strong>bold</strong>):\n(1)"dot_grid"\n(2)"dot_variations"\n<strong>(3)"dot_speeds"\n</strong>(4)"dot_reversal"\n' ...
-    '<strong>(5)"flashing_dots"</strong>\n\n']);
+    '<strong>(5)"flashing_dot"</strong>\n<strong>(6)"dot_diffhist"</strong>\n\n']);
 intStimSet = input('intStimSet= ');
 sStimParams.intStimSet = intStimSet;
 
@@ -119,8 +119,9 @@ if sStimParams.intStimSet ~= 1
     sStimParams.intRespPosY_pix = round(input('intRespPosY_pix= ')); % pix; y screen pos. of respones zone
     if sStimParams.intStimSet ~= 3 && sStimParams.intStimSet ~= 5 %not relevant for dot_speed
         sStimParams.intRespPosX_pix = round(input('intRespPosX_pix= ')); % pix; x screen pos. of reponse zone
-        sStimParams.intRespSize_pix = round(input('intRespSize_pix= ')); % pix; diameter of the response zone
+        sStimParams.intRespSize_pix = NaN; %round(input('intRespSize_pix= ')); % pix; diameter of the response zone
     else
+        sStimParams.intRespPosX_pix = NaN;
         sStimParams.intRespSize_pix = NaN;
     end
 else

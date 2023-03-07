@@ -28,6 +28,8 @@ end
 if verbose
     figure
     hold on
+%     plot(vecSpikeTimes,1:length(vecSpikeTimes),'k');
+%     plot(vecSpikeTimes,(vecSpikeTimes - vecSpikeTimes(1)) * length(vecSpikeTimes) / (vecSpikeTimes(end)-vecSpikeTimes(1)),'r');
     plot(vecSpikeTimes,vecCorCurSpike,'-');
     plot(dblOnsetTime,dblMin,'o');
 end
