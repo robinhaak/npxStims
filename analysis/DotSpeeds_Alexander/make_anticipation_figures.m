@@ -20,7 +20,7 @@ end
 
 
 %% Record template
-record.lab = 'Heimellab'; %#ok<UNRCH> 
+record.lab = 'Heimellab';  
 record.project = 'Anticipation';
 record.dataset = '22.35.03';
 record.subject = '83554';

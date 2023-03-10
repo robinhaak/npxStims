@@ -90,7 +90,9 @@ if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
 else
     % Unsorted channels
     load(strLog,'structEP');
-    load(fullfile(strSessionPath,'spikes.mat'),'vecSpikeCh','vecSpikeSecs');
+    
+    strSpikesFile = fullfile(strSessionPath,'spikes.mat');
+    load(strSpikesFile,'vecSpikeCh','vecSpikeSecs');
 
     if isempty(vecClustersToAnalyze)
         vecClustersToAnalyze = unique(vecSpikeCh);
