@@ -205,8 +205,8 @@ figure('Name',['Dot diffhist ' num2str(measures.intIndex)],'NumberTitle','off');
 
 sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', measures.intIndex );
 if isempty(sMeasuresDotSpeeds)
-    sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix = NaN;
-    sMeasuresDotSpeeds.dblXRFRightFromOnset_pix = NaN;
+    sMeasuresDotSpeeds(1).dblXRFLeftFromOnset_pix = NaN;
+    sMeasuresDotSpeeds(1).dblXRFRightFromOnset_pix = NaN;
 end
 sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', measures.intIndex );
 if isempty(sMeasuresFlashingDots)
