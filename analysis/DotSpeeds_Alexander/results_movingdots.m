@@ -196,10 +196,18 @@ end
 %% Subplots_dot_diffhist
 function subplots_dot_diffhist( measures, record, sParams) 
 
+intNumStimuli = length(measures.vecPeakTime);
+sParams.clrScheme = parula(intNumStimuli);
+
+
 figure('Name',['Dot diffhist ' num2str(measures.intIndex)],'NumberTitle','off');
-indResponsive = (measures.vecZetaP < min(0.05,1/length(measures.vecZetaP)));
+%indResponsive = (measures.vecZetaP < min(0.05,1/length(measures.vecZetaP)));
 
 sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', measures.intIndex );
+if isempty(sMeasuresDotSpeeds)
+    sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix = NaN;
+    sMeasuresDotSpeeds.dblXRFRightFromOnset_pix = NaN;
+end
 sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', measures.intIndex );
 if isempty(sMeasuresFlashingDots)
     sMeasuresFlashingDots(1).dblXRFLeft_pix = NaN;
@@ -209,22 +217,18 @@ end
 
 subplot(3,2,3); % CorCumSpikes
 hold on
-for ind=1:length(record.sStimuli.vecStimStartX_pix)
+for ind = find(measures.vecResponsive) %1:length(record.sStimuli.vecStimStartX_pix)
     if isempty(measures.cellSpikeTimes{ind})
         continue
     end
     vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind) + measures.cellSpikeTimes{ind}*record.sStimuli.vecSpeed_pix(ind);
-    vecCorCumSpike = (1:length(vecStimPos_pix))' - (vecStimPos_pix - vecStimPos_pix(1)) * length(vecStimPos_pix) / (vecStimPos_pix(end)-vecStimPos_pix(1));
-    plot(vecStimPos_pix,vecCorCumSpike,'-');
+    vecCorCumSpike = corCumFun(vecStimPos_pix);
+    plot(vecStimPos_pix,vecCorCumSpike,'-','Color',sParams.clrScheme(ind,:));
 end
 xlabel('Stim position (pix)');
 ylabel('CorCumSpikes (sp)');
 xlim([-1200 1200])
-if ~isempty(sMeasuresDotSpeeds)
-    if ~isempty(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix)
-        plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
-    end
-end
+plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
 plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 
@@ -233,18 +237,16 @@ plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFla
 subplot(3,2,4) % Start vs Onset position
 hold on
 vecStimPosAtResponseOnset_pix = record.sStimuli.vecStimStartX_pix + measures.vecOnsetTime.*record.sStimuli.vecSpeed_pix;
-scatter(record.sStimuli.vecStimStartX_pix(indResponsive),vecStimPosAtResponseOnset_pix(indResponsive),20,'filled');
+scatter(record.sStimuli.vecStimStartX_pix(measures.vecResponsive),...
+    vecStimPosAtResponseOnset_pix(measures.vecResponsive),20,...
+    sParams.clrScheme(measures.vecResponsive,:),'filled');
 xlabel('Stim position at start (pix)');
 ylabel('Stim position at onset (pix)');
 xlim([-1200 1200])
 ylim([-1200 1200])
 axis square
 xyline
-if ~isempty(sMeasuresDotSpeeds)
-    if ~isempty(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix)
-        plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
-    end
-end
+plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
 plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 
@@ -252,7 +254,7 @@ plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFla
 
 end
 %% Subplots_flashing_dots
-function subplots_flashing_dots( measures, record, sParams) %#ok<INUSD> 
+function subplots_flashing_dots( measures, record, sParams)
 
 figure('Name',['Flashing dots ' num2str(measures.intIndex)],'NumberTitle','off');
 
@@ -343,7 +345,7 @@ if ~isempty(measures.cellSpikeTimes{ind})
 end
 
 xlabel('Stim position (pix)');
-ylabel(['CorCumSpikes (sp)']);
+ylabel('CorCumSpikes (sp)');
 xlim([-1200 1200])
 
 end

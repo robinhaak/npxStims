@@ -16,7 +16,6 @@ vecCorCurSpike = corCumFun(vecSpikeTimes);
 
 [dblMax,indMax] = max(vecCorCurSpike);
 
-
 [dblMin,indMin] = min(vecCorCurSpike(1:indMax));
 dblOnsetTime = vecSpikeTimes(indMin);
 
@@ -27,11 +26,9 @@ dblOnsetTime = vecSpikeTimes(indMin);
 % end
 
 
-verbose = true;
 if verbose
     figure
     hold on
     plot(vecSpikeTimes,vecCorCurSpike,'-');
     plot(dblOnsetTime,dblMin,'o');
-%    pause
 end
