@@ -130,6 +130,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
             vecEventStarts,measure.vecDuration(i)+dblIntertrialInterval); % ~ is essential for correct output
         
         measure.vecZetaP(i) = dblZetaP;
+
         measure.cellSpikeTimes{i} =sZETA.vecSpikeT(2:end-1);  % spiketimes, ZETA has padded extra points at beginning and end
         measure.vecNSpikes(i) = length(measure.cellSpikeTimes{i} );
         
@@ -144,19 +145,22 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.vecOnsetTime(i) = computeOnsetFromSpikeCount( measure.cellSpikeTimes{i} );
         measure.vecMeanRate(i) = (length(measure.cellSpikeTimes{i}))/measure.vecDuration(i)/measure.vecNRepeats(i);
     end % stim i
+
+    intNumStimuli = length(measure.vecZetaP);
+    measure.vecResponsive = measure.vecZetaP<min(0.01,1/intNumStimuli);
     
     switch record.sStimuli.strStimSet
         case 'dot_speeds'
             measure = compute_dot_speeds_measures( measure, record );
         case 'flashing_dots'
-            measure = compute_flashing_dots_measures( measure, record );
+            measure = compute_flashing_dots_measures( measure, record, structEP.sStimParams );
         case 'dot_diffhist'
             measure = compute_dot_diffhist_measures( measure, record );
         otherwise
             logmsg(['Analysis not implemented of ' record.sStimuli.strStimSet])
     end
     
-    if sum(measure.vecZetaP<0.05)>2
+    if sum(measure.vecResponsive)>2
         measure.boolResponsive = true;
     else
         measure.boolResponsive = false;
@@ -355,6 +359,23 @@ function measure = compute_dot_diffhist_measures( measure, record )
 end
 
 
-function measure = compute_flashing_dots_measures( measure, record )
+function measure = compute_flashing_dots_measures( measure, record, sStimParams )
 % not much to do here
+
+measure.vecResponsive = measure.vecResponsive & measure.vecPeakTime<0.250;
+
+if any(measure.vecResponsive)
+    measure.dblXRFLeft_pix = record.sStimuli.vecBoundingRect{find(measure.vecResponsive,1,'first')}(1) - sStimParams.intScreenWidth_pix/2;
+    measure.dblXRFRight_pix = record.sStimuli.vecBoundingRect{find(measure.vecResponsive,1,'last')}(3) - sStimParams.intScreenWidth_pix/2;
+else
+    measure.dblXRFLeft_pix = NaN;
+    measure.dblXRFRight_pix = NaN;
+end
+if isempty(measure.dblXRFLeft_pix)
+    measure.dblXRFLeft_pix = NaN;
+end
+if isempty(measure.dblXRFRight_pix)
+    measure.dblXRFRight_pix = NaN;
+end
+
 end

@@ -21,6 +21,7 @@ sParams.dblOnsetResponseThreshold = 0.5;
 sParams.clrLeft = [1 0 0];
 sParams.clrRight = [0 0 1];
 sParams.clrPatches = [0 0.6 0];
+sParams.clrFlashing = [0 0 0];
 
 
 

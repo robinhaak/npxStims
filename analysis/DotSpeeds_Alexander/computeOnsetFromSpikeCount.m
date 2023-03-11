@@ -9,7 +9,10 @@ if isempty(vecSpikeTimes)
     return
 end
 
-vecCorCurSpike = (1:length(vecSpikeTimes))' - (vecSpikeTimes - vecSpikeTimes(1)) * length(vecSpikeTimes) / (vecSpikeTimes(end)-vecSpikeTimes(1));
+%vecCorCurSpike = (1:length(vecSpikeTimes))' - (vecSpikeTimes - vecSpikeTimes(1)) * length(vecSpikeTimes) / (vecSpikeTimes(end)-vecSpikeTimes(1));
+
+vecCorCurSpike = corCumFun(vecSpikeTimes);
+%(1:length(vecSpikeTimes))' - (vecSpikeTimes - vecSpikeTimes(1)) * length(vecSpikeTimes) / (vecSpikeTimes(end)-vecSpikeTimes(1));
 
 [dblMax,indMax] = max(vecCorCurSpike);
 
@@ -18,18 +21,17 @@ vecCorCurSpike = (1:length(vecSpikeTimes))' - (vecSpikeTimes - vecSpikeTimes(1))
 dblOnsetTime = vecSpikeTimes(indMin);
 
 % adhoc solution for suppressive cells
-if dblOnsetTime<0.1 * vecSpikeTimes(end)
-    [dblMin,indMin] = min(vecCorCurSpike);
-    dblOnsetTime = vecSpikeTimes(indMin);
-end
+% if dblOnsetTime<0.1 * vecSpikeTimes(end)
+%     [dblMin,indMin] = min(vecCorCurSpike);
+%     dblOnsetTime = vecSpikeTimes(indMin);
+% end
 
 
-
+verbose = true;
 if verbose
     figure
     hold on
-%     plot(vecSpikeTimes,1:length(vecSpikeTimes),'k');
-%     plot(vecSpikeTimes,(vecSpikeTimes - vecSpikeTimes(1)) * length(vecSpikeTimes) / (vecSpikeTimes(end)-vecSpikeTimes(1)),'r');
     plot(vecSpikeTimes,vecCorCurSpike,'-');
     plot(dblOnsetTime,dblMin,'o');
+%    pause
 end
