@@ -17,11 +17,12 @@ sParams.boolFitGaussian = false; % compute peak and onset times based on Gaussia
 sParams.dblThresholdResponsiveZetaP = 0.01;
 sParams.dblOnsetResponseThreshold = 0.5;
 
-% Color scheme
+% Results
 sParams.clrLeft = [1 0 0];
 sParams.clrRight = [0 0 1];
 sParams.clrPatches = [0 0.6 0];
 sParams.clrFlashing = [0 0 0];
+sParams.intMarkerSize = 5; % pt
 
 
 
