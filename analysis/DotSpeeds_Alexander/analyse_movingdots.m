@@ -35,9 +35,17 @@ sVars = whos('-file',strLog);
 if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
     % single unit data
     load(strLog,'sSynthData'); %rm sSynthData later
-    
-    cellExpType = cellfun(@(x) x.structEP.strExpType, sSynthData.cellStim, 'UniformOutput', false);
-    ind = find(contains(cellExpType,record.stimulus));
+    ind = [];
+    for i = 1:length(sSynthData.cellStim)
+        if strcmp(sSynthData.cellStim{i}.structEP.strExpType,record.stimulus)
+            ind = [ind i]; %#ok<AGROW>
+            continue
+        end
+        if isfield(sSynthData.cellStim{i}.structEP,'strStimSet') && strcmp(sSynthData.cellStim{i}.structEP.strStimSet,record.stimulus)
+            ind = [ind i]; %#ok<AGROW>
+            continue
+        end            
+    end % i
     if isempty(ind)
         logmsg(['Could not find stimulus ' record.stimulus ' in '  strLog]);
         return

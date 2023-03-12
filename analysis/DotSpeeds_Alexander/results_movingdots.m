@@ -32,7 +32,7 @@ else
     sRecordDotSpeeds = [];
 end
 
-%%
+%% Generic measures
 sParams = RH_defaultParameters(  );
 
 selected_units = select_measures_by_channel( record.measures, record, 'intIndex');
@@ -58,11 +58,9 @@ for m = 1:length(selected_units)
     drawnow
 end % m
 
-
 %% Postamble
 measures = record.measures;
 logmsg('''measures'' and ''globalrecord'' available in workspace');
-
 
 end
 
@@ -327,8 +325,6 @@ ylabel('CorCum (sp)');
 
 
 end
-
-
 
 %% Helper functions
 
