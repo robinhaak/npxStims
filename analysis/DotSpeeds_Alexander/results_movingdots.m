@@ -78,7 +78,7 @@ sParams.clrScheme(indRight,:) =  diag(linspace(0.4,1,length(indRight))) * repmat
 intMarkerSize = 20;
 
 
-figure('Name',['Dots ' num2str(measures.intIndex)],'NumberTitle','off');
+figure('Name',['Dot speeds' num2str(measures.intIndex)],'NumberTitle','off');
 
 subplot(3,2,1)
 hold on;
@@ -203,12 +203,12 @@ sParams.clrScheme = parula(intNumStimuli);
 figure('Name',['Dot diffhist ' num2str(measures.intIndex)],'NumberTitle','off');
 %indResponsive = (measures.vecZetaP < min(0.05,1/length(measures.vecZetaP)));
 
-sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', measures.intIndex );
+sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', [], measures.intIndex );
 if isempty(sMeasuresDotSpeeds)
     sMeasuresDotSpeeds(1).dblXRFLeftFromOnset_pix = NaN;
     sMeasuresDotSpeeds(1).dblXRFRightFromOnset_pix = NaN;
 end
-sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', measures.intIndex );
+sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', [], measures.intIndex );
 if isempty(sMeasuresFlashingDots)
     sMeasuresFlashingDots(1).dblXRFLeft_pix = NaN;
     sMeasuresFlashingDots(1).dblXRFRight_pix = NaN;
@@ -233,23 +233,29 @@ plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlas
 plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 
 
-
 subplot(3,2,4) % Start vs Onset position
 hold on
 vecStimPosAtResponseOnset_pix = record.sStimuli.vecStimStartX_pix + measures.vecOnsetTime.*record.sStimuli.vecSpeed_pix;
 scatter(record.sStimuli.vecStimStartX_pix(measures.vecResponsive),...
     vecStimPosAtResponseOnset_pix(measures.vecResponsive),20,...
     sParams.clrScheme(measures.vecResponsive,:),'filled');
-xlabel('Stim position at start (pix)');
-ylabel('Stim position at onset (pix)');
 xlim([-1200 1200])
 ylim([-1200 1200])
+plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
+plot(xlim,sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],'--','Color',sParams.clrLeft);
+plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
+plot(xlim,sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],'-','Color',sParams.clrFlashing);
+%plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
+plot(measures.lmBefore);
+legend off
+dblLow = min([record.sStimuli.vecStimStartX_pix(measures.vecResponsive) vecStimPosAtResponseOnset_pix(measures.vecResponsive)]);
+dblHigh = max([record.sStimuli.vecStimStartX_pix(measures.vecResponsive) vecStimPosAtResponseOnset_pix(measures.vecResponsive)]);
+xlim([dblLow dblHigh]);
+ylim([dblLow dblHigh]);
 axis square
 xyline
-plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
-plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
-plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
-
+xlabel('Stim position at start (pix)');
+ylabel('Stim position at onset (pix)');
 
 
 end
@@ -258,10 +264,10 @@ function subplots_flashing_dots( measures, record, sParams)
 
 figure('Name',['Flashing dots ' num2str(measures.intIndex)],'NumberTitle','off');
 
-sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', measures.intIndex );
+sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', [],measures.intIndex );
 if isempty(sMeasuresDotSpeeds)
-    sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix = NaN;
-    sMeasuresDotSpeeds.dblXRFRightFromOnset_pix = NaN;
+    sMeasuresDotSpeeds(1).dblXRFLeftFromOnset_pix = NaN;
+    sMeasuresDotSpeeds(1).dblXRFRightFromOnset_pix = NaN;
 end
 
 intNumStimuli = length(measures.vecPeakTime);
@@ -324,18 +330,19 @@ end
 
 
 function    plot_rate_vs_time(measures,record,indLeft)
-vecSpeed_pix = record.sStimuli.vecSpeed_pix;
-vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indLeft) + measures.cellEdges{indLeft}*vecSpeed_pix(indLeft);
+%vecSpeed_pix = record.sStimuli.vecSpeed_pix;
+%vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indLeft) + measures.cellEdges{indLeft}*vecSpeed_pix(indLeft);
+
+vecStimPos_pix = timeToStimulusCenterPosition(measures.cellEdges{indLeft},record.sStimuli,indLeft);
+
+
 histogram(measures.cellSpikeCounts{indLeft},vecStimPos_pix,'FaceColor',0.7*[1 1 1],'EdgeColor',0.7*[1 1 1]);
 end
 
 function plot_corcumspikes_vs_time(ind,measures,record,sParams)
-vecSpeed_pix = record.sStimuli.vecSpeed_pix;
-
 hold on
-
 if ~isempty(measures.cellSpikeTimes{ind})
-    vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind) + cos(record.sStimuli.vecDirection(ind)/180*pi) * measures.cellSpikeTimes{ind}*vecSpeed_pix(ind);
+    vecStimPos_pix = timeToStimulusCenterPosition(measures.cellSpikeTimes{ind},record.sStimuli,ind);
     vecCorCumSpike = (1:length(vecStimPos_pix))' - (vecStimPos_pix - vecStimPos_pix(1)) * length(vecStimPos_pix) / (vecStimPos_pix(end)-vecStimPos_pix(1));
     plot(vecStimPos_pix,vecCorCumSpike,'-','Color',sParams.clrScheme(ind,:));
     indPeakTime = find(measures.cellSpikeTimes{ind}>=measures.vecPeakTime(ind),1);
@@ -350,31 +357,4 @@ xlim([-1200 1200])
 
 end
 
-function sRelatedRecord = get_related_record( record, strCrit )
 
-h_db = get_fighandle('Neuropixels database*');
-if ~isempty(h_db)
-    sUserData = get(h_db,'userdata');
-    db = sUserData.db;
-    strCrit = ['dataset=' record.dataset ',subject=' record.subject ...
-        ',date=' record.date ',' strCrit];
-    sRelatedRecord = db(find_record(db,strCrit));
-else
-    sRelatedRecord = [];
-end
-end
-
-function sRelatedMeasures = get_related_measures( record, strCrit, vecIndex)
-if nargin<3
-    vecIndex = [];
-end
-sRelatedRecord = get_related_record( record, strCrit );
-if ~isempty(sRelatedRecord)
-    sRelatedMeasures = sRelatedRecord.measures;
-    if ~isempty(vecIndex)
-        sRelatedMeasures = sRelatedMeasures(ismember([sRelatedMeasures.intIndex],vecIndex));
-    end
-else
-    sRelatedMeasures = [];
-end
-end

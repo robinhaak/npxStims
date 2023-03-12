@@ -1,17 +1,19 @@
-function record = analyse_movingdots(record,verbose)
+function record = analyse_movingdots(record,db,verbose)
 %ANALYSE_MOVINGDOTS analysis moving dots stimuli
 %
-%  RECORD = ANALYSE_MOVINGDOTS( RECORD, VERBOSE )
+%  RECORD = ANALYSE_MOVINGDOTS( RECORD, DB, VERBOSE )
 %
 %  Wrapper analysis responses to dots stimuli,
 %  real analysis in done in stimulus specific scripts.
 %
 % 2022-2023, Robin Haak, Alexander Heimel
 
-if nargin<2 || isempty(verbose)
-    verbose = true; %#ok<NASGU> 
+if nargin<2 || isempty(db)
+    db = [];
 end
-
+if nargin<3 || isempty(verbose)
+    verbose = true;
+end
 sParams = RH_defaultParameters();
 
 % if verbose
@@ -155,7 +157,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         case 'flashing_dots'
             measure = compute_flashing_dots_measures( measure, record, structEP.sStimParams );
         case 'dot_diffhist'
-            measure = compute_dot_diffhist_measures( measure, record );
+            measure = compute_dot_diffhist_measures( measure, record, db );
         otherwise
             logmsg(['Analysis not implemented of ' record.sStimuli.strStimSet])
     end
@@ -168,8 +170,9 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     if ~measure.boolResponsive
         % reduce database size
         logmsg('Cluster not responsive. Removing PSTHs');
-        measure.cellTime = {};
-        measure.cellRate = {};
+        measure.cellSpikeTimes = {};
+        measure.cellSpikeCounts = {};
+        measure.cellEdges = {};
     end
     
     if indMeasures == 1
@@ -207,7 +210,6 @@ record.measures = measures;
 logmsg(['Analyzed ' recordfilter(record)]);
 end
 
-%%
 function measure = compute_dot_speeds_measures( measure, record )
 
 sParams = RH_defaultParameters();
@@ -354,28 +356,40 @@ else
 end
 end
 
-function measure = compute_dot_diffhist_measures( measure, record )
+function measure = compute_dot_diffhist_measures( measure, record, db )
 % not much to do here
+
+sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', db, measure.intIndex );
+measure.lmBefore = [];
+
+if ~isempty(sMeasuresFlashingDots ) && isfield( sMeasuresFlashingDots,'dblXRFLeft_pix') && ~isempty( sMeasuresFlashingDots.dblXRFLeft_pix)
+    ind = find(record.sStimuli.vecStimStartX_pix<sMeasuresFlashingDots.dblXRFLeft_pix  & measure.vecResponsive) ;
+    vecStimPos_pix = timeToStimulusCenterPosition(measure.vecOnsetTime(ind),record.sStimuli,ind);
+    if length(ind)>2
+        measure.lmBefore = fitlm(record.sStimuli.vecStimStartX_pix(ind), vecStimPos_pix);
+    end
 end
 
+
+end
 
 function measure = compute_flashing_dots_measures( measure, record, sStimParams )
 % not much to do here
 
-measure.vecResponsive = measure.vecResponsive & measure.vecPeakTime<0.250;
+measure.vecResponsive = measure.vecResponsive & measure.vecPeakTime<0.250 & measure.vecPeakTime>0.030;
 
-if any(measure.vecResponsive)
-    measure.dblXRFLeft_pix = record.sStimuli.vecBoundingRect{find(measure.vecResponsive,1,'first')}(1) - sStimParams.intScreenWidth_pix/2;
-    measure.dblXRFRight_pix = record.sStimuli.vecBoundingRect{find(measure.vecResponsive,1,'last')}(3) - sStimParams.intScreenWidth_pix/2;
-else
-    measure.dblXRFLeft_pix = NaN;
-    measure.dblXRFRight_pix = NaN;
+measure.dblXRFLeft_pix = NaN;
+measure.dblXRFRight_pix = NaN;
+
+indLeft = find(measure.vecResponsive(1:end-1) & measure.vecResponsive(2:end),1,'first');
+if ~isempty(indLeft)
+    measure.dblXRFLeft_pix = ...
+        record.sStimuli.vecBoundingRect{indLeft}(1) - sStimParams.intScreenWidth_pix/2;
 end
-if isempty(measure.dblXRFLeft_pix)
-    measure.dblXRFLeft_pix = NaN;
-end
-if isempty(measure.dblXRFRight_pix)
-    measure.dblXRFRight_pix = NaN;
+indRight = find(measure.vecResponsive(2:end) & measure.vecResponsive(1:end-1),1,'last')+1;
+if ~isempty(indRight)
+    measure.dblXRFRight_pix = ...
+        record.sStimuli.vecBoundingRect{indRight}(3) - sStimParams.intScreenWidth_pix/2;
 end
 
 end

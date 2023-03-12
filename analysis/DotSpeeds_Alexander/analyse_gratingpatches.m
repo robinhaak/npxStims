@@ -1,13 +1,16 @@
-function record = analyse_gratingpatches(record,verbose)
+function record = analyse_gratingpatches(record,db,verbose)
 %ANALYSE_DOTSPEEDS analysis moving dots stimulus with different speeds
 %
-%  RECORD = ANALYSE_DOTSPEEDS( RECORD, VERBOSE )
+%  RECORD = ANALYSE_DOTSPEEDS( RECORD, DB=[], VERBOSE=true )
 %
 %  Analysis responses to grating patches
 %
 % 2022-2023, Robin Haak, Alexander Heimel
 
-if nargin<2 || isempty(verbose)
+if nargin<2 || isempty(db)
+    db = [];
+end
+if nargin<3 || isempty(verbose)
     verbose = true;
 end
 
