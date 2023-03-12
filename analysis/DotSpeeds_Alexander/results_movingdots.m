@@ -77,27 +77,34 @@ sParams.clrScheme(indLeft,:) =   diag(linspace(0.4,1,length(indLeft))) * repmat(
 sParams.clrScheme(indRight,:) =  diag(linspace(0.4,1,length(indRight))) * repmat(sParams.clrRight,length(indRight),1);
 intMarkerSize = 20;
 
+sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', [], measures.intIndex );
+if isempty(sMeasuresFlashingDots)
+    sMeasuresFlashingDots(1).dblXRFLeft_pix = NaN;
+    sMeasuresFlashingDots(1).dblXRFRight_pix = NaN;
+end
 
 figure('Name',['Dot speeds' num2str(measures.intIndex)],'NumberTitle','off');
 
-subplot(3,2,1)
+subplot(3,2,1) % Peak rate vs speed
 hold on;
-plot(record.sStimuli.vecSpeed_deg(indLeft),measures.vecPeakRate(indLeft),'-','Color',sParams.clrLeft,'MarkerFaceColor',sParams.clrLeft);
-plot(record.sStimuli.vecSpeed_deg(indRight),measures.vecPeakRate(indRight),'-','Color',sParams.clrRight,'MarkerFaceColor',sParams.clrRight);
-scatter(record.sStimuli.vecSpeed_deg,measures.vecPeakRate,intMarkerSize,sParams.clrScheme,'filled');
-
+plot(record.sStimuli.vecSpeed_deg(indLeft),measures.vecPeakRate(indLeft),'-','Color',sParams.clrLeft);
+plot(record.sStimuli.vecSpeed_deg(indRight),measures.vecPeakRate(indRight),'-','Color',sParams.clrRight);
+scatter(record.sStimuli.vecSpeed_deg(measures.vecResponsive),...
+    measures.vecPeakRate(measures.vecResponsive),intMarkerSize,sParams.clrScheme(measures.vecResponsive,:),'filled');
 set(gca,'xscale','log')
 xlabel('Speed (dps)');
 ylabel('Peak rate (sp/s)');
 legend('Left','Right','Location','Best');
-
+yl = ylim;
+ylim([0 yl(2)]);
 
 subplot(3,2,2) % Peak time vs inverse speed
 hold on;
 vecInvSpeed_pix = 1./record.sStimuli.vecSpeed_pix;
-scatter(vecInvSpeed_pix,measures.vecPeakTime,intMarkerSize,sParams.clrScheme,'filled');
-scatter(vecInvSpeed_pix,measures.vecOnsetTime,intMarkerSize,sParams.clrScheme);
-
+scatter(vecInvSpeed_pix(measures.vecResponsive),...
+    measures.vecPeakTime(measures.vecResponsive),intMarkerSize,sParams.clrScheme(measures.vecResponsive,:),'filled');
+scatter(vecInvSpeed_pix(measures.vecResponsive),...
+    measures.vecOnsetTime(measures.vecResponsive),intMarkerSize,sParams.clrScheme(measures.vecResponsive,:));
 x = linspace(min(vecInvSpeed_pix(indLeft)),max(vecInvSpeed_pix(indLeft)),1000);
 if ~isempty(measures.lmLeft) %&& ~isnan(measures.lmLeft.Coefficients.pValue(1))
     % plot full regression line
@@ -111,7 +118,6 @@ if ~isempty(measures.lmLeftFromOnset) %&& ~isnan(measures.lmLeft.Coefficients.pV
     a = measures.lmLeftFromOnset.Coefficients.Estimate(2);
     plot(x,a*x + b,'--','Color',sParams.clrLeft)
 end
-
 x = linspace(min(vecInvSpeed_pix(indRight)),max(vecInvSpeed_pix(indRight)),1000);
 if ~isempty(measures.lmRight) %&& ~isnan(measures.lmRight.Coefficients.pValue(1))
     % plot full regression line
@@ -132,39 +138,38 @@ ylim([0.001 yl(2)]);
 if isfield(measures,'dblPeakTimeFromGratingPatches')
     plot(xlim,measures.dblPeakTimeFromGratingPatches*[1 1],'-','color',sParams.clrPatches)
 end
-
 xlabel('1/Speed (spp)');
 ylabel('Peak time (s)');
 
-
 subplot(3,2,3) % Corrected cumulative spikes left
 hold on
-plot_corcumspikes_vs_time(2,measures,record,sParams)
-plot_corcumspikes_vs_time(3,measures,record,sParams)
-plot_corcumspikes_vs_time(4,measures,record,sParams)
+for ind = indLeft
+    if measures.vecResponsive(ind)
+        plot_corcumspikes_vs_time(ind,measures,record,sParams)
+    end
+end
 plot(measures.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrLeft);
 plot(measures.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
 if isfield(measures,'dblXRFLeftFromGratingPatches_pix')
     plot(measures.dblXRFLeftFromGratingPatches_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
 end
-
+plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 
 subplot(3,2,4) % Corrected cumulative spikes right 
-plot_corcumspikes_vs_time(8,measures,record,sParams)
-plot_corcumspikes_vs_time(9,measures,record,sParams)
-plot_corcumspikes_vs_time(10,measures,record,sParams)
-if isfield(measures,'dblXRFRightFromGratingPatches_pix')
-    plot(measures.dblXRFRightFromGratingPatches_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
+for ind = indRight
+    if measures.vecResponsive(ind)
+        plot_corcumspikes_vs_time(ind,measures,record,sParams)
+    end
 end
 plot(measures.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrRight);
 plot(measures.dblXRFRightFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrRight);
+if isfield(measures,'dblXRFRightFromGratingPatches_pix')
+    plot(measures.dblXRFRightFromGratingPatches_pix*[1 1],ylim,'-','Color',sParams.clrPatches);
+end
+plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 
-
-
-% Panel Delta t
-subplot(3,2,6);
+subplot(3,2,6); % Delta vs 1/speeds
 hold on
-
 if ~isempty(measures.lmLeft)
     plot(vecInvSpeed_pix(indLeft),measures.vecPeakTime(indLeft) - measures.lmLeft.Coefficients.Estimate(2).*vecInvSpeed_pix(indLeft),'o','Color',sParams.clrLeft,'MarkerFaceColor',sParams.clrLeft);
 end
@@ -185,7 +190,6 @@ plot(xlim,measures.dblDeltaTRightFromOnset*[1 1],'-.','Color',sParams.clrRight);
 if isfield(measures,'dblPeakTimeFromGratingPatches')
     plot(xlim,measures.dblPeakTimeFromGratingPatches*[1 1],'-','Color',sParams.clrPatches);
     plot(xlim,measures.dblOnsetTimeFromGratingPatches*[1 1],'--','Color',sParams.clrPatches);
-
 end
 
 xlabel('1/Speed (spp)');

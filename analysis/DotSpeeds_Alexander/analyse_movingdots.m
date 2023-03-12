@@ -149,7 +149,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
     end % stim i
 
     intNumStimuli = length(measure.vecZetaP);
-    measure.vecResponsive = measure.vecZetaP<min(0.01,1/intNumStimuli);
+    measure.vecResponsive = measure.vecZetaP<min(sParams.dblThresholdResponsiveZetaP,1/intNumStimuli);
     
     switch record.sStimuli.strStimSet
         case 'dot_speeds'
@@ -309,7 +309,7 @@ vecLeft = false(1,length(vecSpeed_pix));
 vecLeft(indLeft) = true;
 vecRight = false(1,length(vecSpeed_pix));
 vecRight(indRight) = true;
-vecResponsive = (measure.vecZetaP<sParams.dblThresholdResponsiveZetaP );
+vecResponsive = measure.vecResponsive;
 
 if sParams.boolOnlyUseMiddleRangeSpeeds
     vecMiddleRange = record.sStimuli.vecSpeed_deg>5 & record.sStimuli.vecSpeed_deg<100;
@@ -317,13 +317,10 @@ if sParams.boolOnlyUseMiddleRangeSpeeds
 end
 
 if sum(vecLeft & vecResponsive)>1
-    vecTime = measure.vecPeakTime;
-    measure.lmLeft = compact(fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),vecTime(vecLeft & vecResponsive)));
+    measure.lmLeft = compact(fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),measure.vecPeakTime(vecLeft & vecResponsive)));
     measure.dblDeltaTLeft = measure.lmLeft.Coefficients.Estimate(1);
     measure.dblXRFLeft_pix = measure.lmLeft.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indLeft));
-    
-    vecTime = measure.vecOnsetTime;
-    measure.lmLeftFromOnset = compact(fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),vecTime(vecLeft & vecResponsive)));
+    measure.lmLeftFromOnset = compact(fitlm(1./vecSpeed_pix(vecLeft & vecResponsive),measure.vecOnsetTime(vecLeft & vecResponsive)));
     measure.dblDeltaTLeftFromOnset = measure.lmLeftFromOnset.Coefficients.Estimate(1);
     measure.dblXRFLeftFromOnset_pix = measure.lmLeftFromOnset.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indLeft));
 else
@@ -335,16 +332,12 @@ else
     measure.dblXRFLeftFromOnset_pix = NaN;
 end
 if sum(vecRight & vecResponsive)>1
-    vecTime = measure.vecPeakTime;
-    measure.lmRight = compact(fitlm(1./vecSpeed_pix(vecRight & vecResponsive),vecTime(vecRight & vecResponsive)));
+    measure.lmRight = compact(fitlm(1./vecSpeed_pix(vecRight & vecResponsive),measure.vecPeakTime(vecRight & vecResponsive)));
     measure.dblDeltaTRight = measure.lmRight.Coefficients.Estimate(1);
     measure.dblXRFRight_pix = -measure.lmRight.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indRight));
-    
-    vecTime = measure.vecOnsetTime;
-    measure.lmRightFromOnset = compact(fitlm(1./vecSpeed_pix(vecRight & vecResponsive),vecTime(vecRight & vecResponsive)));
+    measure.lmRightFromOnset = compact(fitlm(1./vecSpeed_pix(vecRight & vecResponsive),measure.vecOnsetTime(vecRight & vecResponsive)));
     measure.dblDeltaTRightFromOnset = measure.lmRightFromOnset.Coefficients.Estimate(1);
     measure.dblXRFRightFromOnset_pix = -measure.lmRightFromOnset.Coefficients.Estimate(2) + mean(vecStimStartX_pix(indRight));
-    
 else
     measure.lmRight = [];
     measure.dblDeltaTRight = NaN;
@@ -352,12 +345,10 @@ else
     measure.lmRightFromOnset = [];
     measure.dblDeltaTRightFromOnset = NaN;
     measure.dblXRFRightFromOnset_pix = NaN;
-    
 end
 end
 
 function measure = compute_dot_diffhist_measures( measure, record, db )
-% not much to do here
 
 sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', db, measure.intIndex );
 measure.lmBefore = [];
@@ -374,7 +365,6 @@ end
 end
 
 function measure = compute_flashing_dots_measures( measure, record, sStimParams )
-% not much to do here
 
 measure.vecResponsive = measure.vecResponsive & measure.vecPeakTime<0.250 & measure.vecPeakTime>0.030;
 
