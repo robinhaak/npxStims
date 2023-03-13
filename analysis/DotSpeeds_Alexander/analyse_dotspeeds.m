@@ -30,6 +30,9 @@ function record = analyse_dotspeeds(record,verbose)
 %
 % 2022-2023, Robin Haak, Alexander Heimel
 
+logmsg('DEPRECATED. USE ANALYSE_MOVINGDOTS INSTEAD.')
+
+
 if nargin<2 || isempty(verbose)
     verbose = true;
 end

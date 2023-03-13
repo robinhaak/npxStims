@@ -6,6 +6,8 @@ function results_dotspeeds(record)
 %
 % 2022-2023, Alexander Heimel
 
+logmsg('DEPRECATED. USE RESULTS_MOVINGDOTS INSTEAD');
+
 global measures globalrecord %#ok<GVMIS>
 evalin('base','global measures globalrecord');
 
@@ -13,9 +15,6 @@ globalrecord = record;
 
 set(groot, 'defaultAxesTickDir', 'out');
 set(groot,  'defaultAxesFontSize', 10);
-
-%vecSpeed_pix = record.sStimuli.vecSpeed_pix;
-
 sParams = RH_defaultParameters(  );
 
 indLeft = find([record.sStimuli.vecDirection]==0);
@@ -154,7 +153,7 @@ end
 function    plot_rate_vs_time(measures,record,indLeft)
 vecSpeed_pix = record.sStimuli.vecSpeed_pix;
 
-indRight = indLeft + 6;
+% indRight = indLeft + 6;
 vecStimPos_pix = record.sStimuli.vecStimStartX_pix(indLeft) + measures.cellEdges{indLeft}*vecSpeed_pix(indLeft);
 histogram(measures.cellSpikeCounts{indLeft},vecStimPos_pix,'FaceColor',0.7*[1 1 1],'EdgeColor',0.7*[1 1 1]);
 
