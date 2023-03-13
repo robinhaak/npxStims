@@ -125,23 +125,45 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.dblDepth_um = 1000 - c; %before: measure.depth
     end
     
+    intNumUniqueStimuli = length(structEP.sAllDots.stimID);
+
     measure.dblRateSpontaneous = computeRateSpontaneous( vecSpikeTimesOfCluster{c}, vecStimOnTime,vecStimOffTime, sParams);
-    measure.vecDuration = zeros(1,length(structEP.sAllDots.stimID));
-    measure.vecNRepeats = zeros(1,length(structEP.sAllDots.stimID));
+    measure.vecDuration = zeros(1,intNumUniqueStimuli);
+    measure.vecNRepeats = zeros(1,intNumUniqueStimuli);
+
+    vecPreStimTime = zeros(1,intNumUniqueStimuli);
+    
+    switch record.stimulus
+        case 'dot_diffhist'
+            % try to equalize period with spontaneous data as much as the
+            % interstimulus period allows for
+
+            vecPreStimTime = record.sStimuli.vecStimStartX_pix ./ record.sStimuli.vecSpeed_pix ;
+            dblMinPreStimTime = max(vecStimOffTime(1:end-1)-vecStimOnTime(2:end)); % shortest prestim time
+            vecPreStimTime = vecPreStimTime(1) - vecPreStimTime;
+            vecPreStimTime(vecPreStimTime<dblMinPreStimTime) = dblMinPreStimTime;
+            
+            % for presentation purpose it might be nicer to then also add
+            % poststimulus time to equalize the trial duration
+        otherwise
+            % No change needed
+    end
+
     for i = 1:length(structEP.sAllDots.stimID)
         stimID = structEP.sAllDots.stimID(i);
         indStims = find(structEP.vecStimID == stimID);
-        
-        vecEventStarts = vecStimOnTime(indStims);
+
+        vecEventStarts = vecStimOnTime(indStims) + vecPreStimTime(i);
+
         measure.vecDuration(i) = mean(vecStimOffTime(indStims) - vecStimOnTime(indStims));
         measure.vecNRepeats(i) = length(indStims);
         
         [ dblZetaP,sZETA] = zetatest(vecSpikeTimesOfCluster{c},...
-            vecEventStarts,measure.vecDuration(i)+dblIntertrialInterval); % ~ is essential for correct output
+            vecEventStarts,measure.vecDuration(i)+dblIntertrialInterval); 
         
         measure.vecZetaP(i) = dblZetaP;
 
-        measure.cellSpikeTimes{i} =sZETA.vecSpikeT(2:end-1);  % spiketimes, ZETA has padded extra points at beginning and end
+        measure.cellSpikeTimes{i} =sZETA.vecSpikeT(2:end-1) + vecPreStimTime(i);  % spiketimes, ZETA has padded extra points at beginning and end
         measure.vecNSpikes(i) = length(measure.cellSpikeTimes{i} );
         
         [vecSpikeCount,vecEdges] = histcounts(measure.cellSpikeTimes{i},'BinWidth',sParams.dblBinWidth);
@@ -209,7 +231,7 @@ end
 
 record.measures = measures;
 
-% % Add dots results
+% Add dots results
 % h_db = get_fighandle('Neuropixels database*');
 % sUserData = get(h_db,'userdata');
 % db = sUserData.db;

@@ -5,6 +5,7 @@ function record = analyse_add_dots_to_patches( record, db, verbose)
 %
 % 2023, Alexander Heimel
 
+
 if nargin<3 || isempty(verbose)
     verbose = true;
 end

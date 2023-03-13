@@ -5,6 +5,9 @@ function record = analyse_add_patches_to_dots( record, db, verbose)
 %
 % 2023, Alexander Heimel
 
+logmsg('DEPRECATED. SHOULD NOW BE DONE IN ANALYSE_MOVINGDOTS AND RESULTS_MOVINGDOTS')
+
+
 if nargin<3 || isempty(verbose)
     verbose = true;
 end
