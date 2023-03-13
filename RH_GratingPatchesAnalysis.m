@@ -1,0 +1,95 @@
+
+%RH_GratingPatchesAnalysis
+%
+%online analysis for 'RH_GratingPatches' using NI stream times
+%you need a GPU to run this script!
+%Robin Haak, November 2022
+
+%% query user for file names & locations
+%ap.bin en ap.meta
+[strAp,strPathIm] = uigetfile('*.ap.bin','Select imec .ap.bin file','MultiSelect','off');
+sMetaIm = DP_ReadMeta(fullpath(strPathIm,[strAp(1:end-4) '.meta']));
+
+%structEP
+[strLog,strLogPath] = uigetfile('*.mat','Select trial-based log file','MultiSelect','off');
+load(fullpath(strLogPath,strLog)); % %#ok<ows');
+
+%% detect spikes on each channel
+[vecSpikeCh,vecSpikeT,~] = DP_DetectSpikesInBinaryFile(fullpath(strPathIm,strAp),[],[],'int16'); %strClass='int16'
+vecSpikeSecs = double(vecSpikeT)/str2double(sMetaIm.imSampRate)+...
+    str2double(sMetaIm.firstSample)/str2double(sMetaIm.imSampRate); %convert to seconds+add offset
+intNumChs = str2num(sMetaIm.nSavedChans); %#ok<ST2NM>
+
+%% get stimulus onset times
+%to be added: re-alignment of times based on diode data
+vecStimOnSecs = structEP.ActOnNI; %NI stream times
+vecStimOffSecs = structEP.ActOffNI;
+
+%% get grid data
+vecUniqueRects = unique(structEP.vecDstRect','rows'); %unique dst rects
+vecUniqueStims = 1:length(vecUniqueRects);
+vecStimIdx = zeros(size(structEP.vecDstRect,2),1);
+for intStim = 1:length(vecUniqueRects)
+    vecStimIdx(ismember(structEP.vecDstRect',vecUniqueRects(intStim,:),'rows')) = vecUniqueStims(intStim);
+end
+
+vecX_pix = unique(vecUniqueRects(:,1))+(vecUniqueRects(1,3)-unique(vecUniqueRects(1,1)))/2;
+vecY_pix = unique(vecUniqueRects(:,2))+(vecUniqueRects(1,4)-unique(vecUniqueRects(1,2)))/2;
+
+%% loop through data
+matAvgRespAll = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
+matAvgRespAllBlSub = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
+for intCh = 1:intNumChs
+    vecSpikesCh = vecSpikeSecs(vecSpikeCh==intCh);
+    vecRate = zeros(1,structEP.intTrialNum);
+    vecBase = zeros(1,structEP.intTrialNum);
+    for intTrial = 1:structEP.intTrialNum
+        vecSpikeT = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)&vecSpikesCh<vecStimOffSecs(intTrial));
+        vecRate(intTrial) = numel(vecSpikeT)/(vecStimOffSecs(intTrial)-vecStimOnSecs(intTrial));
+        vecSpikeB = vecSpikesCh(vecSpikesCh>vecStimOnSecs(intTrial)-1&vecSpikesCh<vecStimOnSecs(intTrial));
+        vecBase(intTrial) = numel(vecSpikeB)/1;
+    end
+    matAvgResp = NaN(numel(vecY_pix),numel(vecX_pix));
+    matAvgRespBlSub = NaN(numel(vecY_pix),numel(vecX_pix));
+
+    for intLoc = vecUniqueStims
+        matAvgResp(intLoc) = mean(vecRate(vecStimIdx==intLoc));
+        matAvgRespBlSub(intLoc) = mean(vecRate(vecStimIdx==intLoc))-mean(vecBase(vecStimIdx==intLoc));
+    end
+    matAvgRespAll(:,:,intCh) = matAvgResp;
+    matAvgRespAllBlSub(:,:,intCh) = matAvgRespBlSub;
+end
+
+%% plot data
+%interpolate
+vecX_pix_interp = linspace(vecX_pix(1),vecX_pix(end),73);
+vecY_pix_interp = linspace(vecY_pix(1),vecY_pix(end),41);
+
+%get colormap(s)
+cellColorMaps = RH_ColorMaps;
+%%
+%loop through channels
+vecChs = flip([190:220]); %inputs channels to plot (1 = bottom Ch?)
+for intCh = vecChs
+    matAvgRespAll_interp = interp2(matAvgRespAll(:,:,intCh),3);
+    matAvgRespAllBlSub_interp = interp2(matAvgRespAllBlSub(:,:,intCh),3);
+    figure;hold on;title(['Channel: ' num2str(intCh)]);
+%     subplot(2,1,1);
+    imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAll(:,:,intCh));
+    set(gca, 'YDir','reverse'); 
+	colormap(cellColorMaps{2});
+	cb=colorbar;cb.Label.String='spks/s';
+    axis image
+	fixfig;
+%     subplot(2,1,2);
+%     imagesc(vecX_pix_interp,vecY_pix_interp,matAvgRespAllBlSub_interp);
+%     set(gca, 'YDir','reverse'); colormap(cellColorMaps{2});colorbar;
+%     fixfig;
+%     pause
+end
+
+
+
+
+
+
