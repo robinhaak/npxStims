@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 6 March '23
+%Robin Haak, last update: 14 March 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -75,8 +75,8 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.dblBackground = 0.5; %background intensity (dbl, [0 1])
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
     sStimParamsSettings.dblSecsInitialBlank = 5; % s
-    sStimParamsSettings.dblSecsPreBlank = 0.5; %0.25; % s
-    sStimParamsSettings.vecSecsPostBlank = [0.5 0.5]; %[0.75 0.75]; %[0.75 1.25]; % s, random within range
+    sStimParamsSettings.dblSecsPreBlank = 0.75; %0.5; %0.25; % s
+    sStimParamsSettings.vecSecsPostBlank = [0.25 0.25]; %[0.5 0.5]; %[0.75 0.75]; %[0.75 1.25]; % s, random within range
     sStimParamsSettings.dblSecsEndBlank = 5; %s
 else
     % evaluate and assign pre-defined values to structure
@@ -109,7 +109,7 @@ fprintf('Saving output in directory %s;\n',strLogDir); %no textures are loaded f
 %stimulus set
 fprintf('--Select stimulus set--\n')
 fprintf(['\nAvailable sets (in <strong>bold</strong>):\n(1)"dot_grid"\n(2)"dot_variations"\n<strong>(3)"dot_speeds"\n</strong>(4)"dot_reversal"\n' ...
-    '<strong>(5)"flashing_dot"</strong>\n<strong>(6)"dot_diffhist"</strong>\n\n']);
+    '<strong>(5)"flashing_dot"</strong>\n<strong>(6)"dot_diffhist"</strong>\n<strong>(7)"dot_disappear"</strong>\n\n']);
 intStimSet = input('intStimSet= ');
 sStimParams.intStimSet = intStimSet;
 
@@ -387,18 +387,20 @@ try
         if boolUseNI,startBackground(objDaqOut);end
 
         %% present moving dot
+
+        sStimParams.intRespSize_pix = 10;
         refTime = tic;
         boolFirstFlip = false;
         intFrame = 1;
         refTimeLocal = tic;
         while intFrame < intNumFrames
-            % 			Screen('FillOval',ptrWindow,sStimParams.intWhite, [sStimParams.intRespPosX_pix-sStimParams.intRespSize_pix/2 ...
-            % 				sStimParams.intRespPosY_pix-sStimParams.intRespSize_pix/2 sStimParams.intRespPosX_pix+sStimParams.intRespSize_pix/2 ...
-            % 				sStimParams.intRespPosY_pix+sStimParams.intRespSize_pix/2]); response zone
+            Screen('FillOval',ptrWindow,sStimParams.intWhite, [sStimParams.intRespPosX_pix-sStimParams.intRespSize_pix/2 ...
+                sStimParams.intRespPosY_pix-sStimParams.intRespSize_pix/2 sStimParams.intRespPosX_pix+sStimParams.intRespSize_pix/2 ...
+                sStimParams.intRespPosY_pix+sStimParams.intRespSize_pix/2]); % response zone
             Screen('FillOval',ptrWindow,vecColor(intFrame),vecBoundingRect(:,intFrame)); %dot
-            if intFrame < intReversalFrame || ~boolReversalTrial
-                Screen('FillRect',ptrWindow,sStimParams.intWhite,vecDiodeRect); %diode
-            end
+            %             if intFrame < intReversalFrame || ~boolReversalTrial
+            Screen('FillRect',ptrWindow,sStimParams.intWhite,vecDiodeRect); %diode
+            %             end
             dblLastFlip = Screen('Flip',ptrWindow,dblLastFlip+dblInterFlipInterval/2);
 
             %send trigger for stim start

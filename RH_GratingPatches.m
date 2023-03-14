@@ -2,7 +2,7 @@
 %GRATINGSPATCHES
 %show patches of (drifting) grating at different locations on the screen the screen
 %
-%Robin Haak, updated March 6th 2023
+%Robin Haak, updated 14 March 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -71,8 +71,8 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
     sStimParamsSettings.dblSecsDuration = 0.5; %s
     sStimParamsSettings.dblSecsInitialBlank = 5; %s
-    sStimParamsSettings.dblSecsPreBlank = 0.25; %s
-    sStimParamsSettings.dblSecsPostBlank = 0.25; %0.5 %s
+    sStimParamsSettings.dblSecsPreBlank = 0.35; %0.25 %s
+    sStimParamsSettings.dblSecsPostBlank = 0.15; %0.25; %0.5 %s
     sStimParamsSettings.dblSecsEndBlank = 5; %s
     sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of direction or phase)
     sStimParamsSettings.vecDirections = [0 180]; %[0 90 180 270]; %drifting directions (only [0 90 180 270], otherwise it gets funky)
@@ -288,7 +288,10 @@ try
     vecDirection = vecDirection(randperm(length(vecDirection)));
 
     %randomize stimulus texture
-    vecTexture = repmat([intGratingTex_1 intGratingTex_2],[1 intTotalTrials/2]);
+    %vecTexture = repmat([intGratingTex_1 intGratingTex_2],[1
+    %intTotalTrials/2]); this somehow stoppped working on March 14th 2023
+    vecTexture = repmat(intGratingTex_1,[1 intTotalTrials]);
+    vecTexture(1:round(intTotalTrials/2)) = intGratingTex_2;
     vecTexture = vecTexture(randperm(length(vecTexture)));
 
     %% build structEP
