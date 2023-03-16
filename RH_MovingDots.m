@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 14 March 2023
+%Robin Haak, last update: 16 March 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true;
-boolUseNI = true;
+boolUseSGL = true; %true;
+boolUseNI = true; %true;
 boolDebug = false;
 
 %defaults
@@ -343,6 +343,20 @@ try
     intThisTrial = 1;
     while intThisTrial <= structEP.intTrialNum && ~CheckEsc()
 
+        %check whether script execution should be paused
+        if CheckPause()
+            fprintf('\n\n<strong>STIMULUS SCRIPT PAUSED!</strong> [%s]\n\n',getTime);
+            WaitSecs(1);
+            %get user input
+            opts = struct;
+            opts.Default = 'Restart';
+            opts.Interpreter = 'tex';
+            strAns = questdlg('STIMULUS SCRIPT PAUSED! Would you like to restart the stimulation?', ...
+                'Restart Stimulation', ...
+                'Restart',opts);
+            WaitSecs(1);
+        end
+
         % trial start; background
         Screen('FillRect',ptrWindow, sStimParams.intBackground);
         dblTrialStartFlip = Screen('Flip', ptrWindow);
@@ -387,16 +401,15 @@ try
         if boolUseNI,startBackground(objDaqOut);end
 
         %% present moving dot
-
-        sStimParams.intRespSize_pix = 10;
+%         sStimParams.intRespSize_pix = 10;
         refTime = tic;
         boolFirstFlip = false;
         intFrame = 1;
         refTimeLocal = tic;
         while intFrame < intNumFrames
-            Screen('FillOval',ptrWindow,sStimParams.intWhite, [sStimParams.intRespPosX_pix-sStimParams.intRespSize_pix/2 ...
-                sStimParams.intRespPosY_pix-sStimParams.intRespSize_pix/2 sStimParams.intRespPosX_pix+sStimParams.intRespSize_pix/2 ...
-                sStimParams.intRespPosY_pix+sStimParams.intRespSize_pix/2]); % response zone
+%                         Screen('FillOval',ptrWindow,sStimParams.intWhite, [sStimParams.intRespPosX_pix-sStimParams.intRespSize_pix/2 ...
+%                             sStimParams.intRespPosY_pix-sStimParams.intRespSize_pix/2 sStimParams.intRespPosX_pix+sStimParams.intRespSize_pix/2 ...
+%                             sStimParams.intRespPosY_pix+sStimParams.intRespSize_pix/2]); % response zone
             Screen('FillOval',ptrWindow,vecColor(intFrame),vecBoundingRect(:,intFrame)); %dot
             %             if intFrame < intReversalFrame || ~boolReversalTrial
             Screen('FillRect',ptrWindow,sStimParams.intWhite,vecDiodeRect); %diode

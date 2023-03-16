@@ -2,7 +2,7 @@
 %GRATINGSPATCHES
 %show patches of (drifting) grating at different locations on the screen the screen
 %
-%Robin Haak, updated 14 March 2023
+%Robin Haak, updated 15 March 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -281,7 +281,6 @@ try
             vecStimulusPresentationIDs = [vecStimulusPresentationIDs vecStimulusConditionIDs(randperm(length(vecStimulusConditionIDs)))]; end %#ok<AGROW>
     intTotalTrials = length(vecStimulusPresentationIDs);
 
-
     %create randomized direction vector
     vecDirection = repmat(sStimParams.vecDirections,[1 floor(intTotalTrials/length(sStimParams.vecDirections))]);
     vecDirection = [vecDirection vecDirection(1:(intTotalTrials-length(vecDirection)))];
@@ -376,6 +375,20 @@ try
     %% draw stimuli on screen
     intThisTrial = 1;
     while intThisTrial <= intTotalTrials && ~CheckEsc()
+
+        %check whether script execution should be paused
+        if CheckPause()
+            fprintf('\n\n<strong>STIMULUS SCRIPT PAUSED!</strong> [%s]\n\n',getTime);
+            WaitSecs(1);
+            %get user input
+            opts = struct;
+            opts.Default = 'Restart';
+            opts.Interpreter = 'tex';
+            strAns = questdlg('STIMULUS SCRIPT PAUSED! Would you like to restart the stimulation?', ...
+                'Restart Stimulation', ...
+                'Restart',opts);
+            WaitSecs(1);
+        end
 
         % trial start; background
         Screen('FillRect',ptrWindow, sStimParams.intBackground);
