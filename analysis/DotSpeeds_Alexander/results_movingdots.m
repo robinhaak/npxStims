@@ -256,7 +256,7 @@ for ind = find(measures.vecResponsive) %1:length(record.sStimuli.vecStimStartX_p
         continue
     end
     vecStimPos_pix = record.sStimuli.vecStimStartX_pix(ind) + measures.cellSpikeTimes{ind}*record.sStimuli.vecSpeed_pix(ind);
-    vecCorCumSpike = corCumFun(vecStimPos_pix);
+    vecCorCumSpike = detrend_count(vecStimPos_pix);
     plot(vecStimPos_pix,vecCorCumSpike,'-','Color',sParams.clrScheme(ind,:));
 end
 xlabel('Stim position (pix)');
@@ -337,19 +337,19 @@ hold on
 
 [~,ind] = max(measures.vecPeakRate);
 vecSpikes = measures.cellSpikeTimes{ind};
-vecCorCumSpike = corCumFun( vecSpikes );
+vecCorCumSpike = detrend_count( vecSpikes );
 plot(vecSpikes,vecCorCumSpike,'-','Color',sParams.clrScheme(ind,:));
 
 % Left edge
 ind = find(measures.vecResponsive,1,'first');
 vecSpikes = measures.cellSpikeTimes{ind};
-vecCorCumSpike = corCumFun( vecSpikes );
+vecCorCumSpike = detrend_count( vecSpikes );
 plot(vecSpikes,vecCorCumSpike,'-','Color',sParams.clrScheme(ind,:));
 
 % Right edge
 ind = find(measures.vecResponsive,1,'last');
 vecSpikes = measures.cellSpikeTimes{ind};
-vecCorCumSpike = corCumFun( vecSpikes );
+vecCorCumSpike = detrend_count( vecSpikes );
 plot(vecSpikes,vecCorCumSpike,'-','Color',sParams.clrScheme(ind,:));
 
 xlabel('Time (s)');

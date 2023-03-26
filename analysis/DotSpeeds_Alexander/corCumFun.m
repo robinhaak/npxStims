@@ -5,4 +5,6 @@ function vecCorCumSpike = corCumFun( vecSpikes )
 %
 % 2023, Alexander Heimel
 
+disp('DEPRECATED: USE DETREND_COUNT INSTEAD.');
+
 vecCorCumSpike = (1:length(vecSpikes))' - (vecSpikes - vecSpikes(1)) * length(vecSpikes) / (vecSpikes(end)-vecSpikes(1));

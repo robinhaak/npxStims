@@ -198,7 +198,7 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.vecPeakTime(i) = vecCenters(indPeak);
         measure.vecPeakRate(i) = dblPeak / sParams.dblBinWidth / vecNRepeats(i);
         measure.vecOnsetTime(i) = NaN;
-        measure.vecOnsetTime(i) = computeOnsetFromSpikeCount( measure.cellSpikeTimes{i} );
+        measure.vecOnsetTime(i) = compute_onset_from_spikecount( measure.cellSpikeTimes{i} );
         measure.vecMeanRate(i) = (length(measure.cellSpikeTimes{i}))/vecDuration(i)/vecNRepeats(i);
         
         
