@@ -38,8 +38,8 @@ if verbose
   
   subplot(2,1,2);
   hold on
-  n_bars = 20;
-  histogram(spike_times,n_bars,'Normalization','countdensity');
+  binwidth = 0.1; % s
+  histogram(spike_times,'BinWidth',binwidth,'Normalization','countdensity');
   t = linspace(t_start,t_end,100);
   plot( t,rate_fun(t),'k-');
   xlabel('Time');
