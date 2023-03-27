@@ -1,7 +1,11 @@
 function spike_times = generate_spiketimes_from_ratefunction(rate_fun, t_start, t_end, verbose)
 %GENERATE_SPIKETIMES_FROM_RATEFUNCTION generates spike times from a poisson process with variable rate
 %
-% spike_times = generate_spiketimes_from_ratefunction(rate_fun, t_start, t_end, [verbose=false])
+% SPIKE_TIMES = generate_spiketimes_from_ratefunction(RATE_FUN, T_START, T_END, [VERBOSE=false])
+%     RATE_FUN is a handle to a function of time that gives the rate
+%     T_START is start of interval to generate spike times for
+%     T_END is end of interval to generate spike times for
+%     if VERBOSE is true, a figure with the detrended count is shown
 %
 % 2023, Alexander Heimel 
 
