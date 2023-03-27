@@ -14,7 +14,8 @@ event_duration = prestimulus_duration + stimulus_duration + poststimulus_duratio
 event_times = trial_start_time + pretrial_duration + 0:event_duration:(num_stimuli-1)*event_duration;
 trial_end_time = event_times(end) + event_duration + posttrial_duration;
 
-response_fun = @(t) + 400*thresholdlinear(  -(t-1/2-prestimulus_duration).^2 + 1/4  );
+peak_response = 1; % sp/s
+response_fun = @(t) + peak_response*thresholdlinear(  -(t-1/2-prestimulus_duration).^2 + 1/4  );
 rate_spont = 1; % sp/s
 rate_fun = @(t) rate_spont + sum(response_fun( t - event_times'));
 
