@@ -24,7 +24,7 @@ if nargin<2 || isempty(eventtimes)
 end
 if nargin<3 || isempty(maxduration)
     eventtimes = sort(eventtimes);
-    maxduration = min(diff(eventtimes));
+    maxduration = min(diff(unique(eventtimes)));
 end
 if nargin<4 || isempty(verbose)
     verbose = false;
