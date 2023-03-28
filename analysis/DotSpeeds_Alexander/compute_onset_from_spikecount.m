@@ -1,7 +1,7 @@
-function [onsettime,bootstrapped_error] = compute_onset_from_spikecount( spiketimes, eventtimes, maxduration, verbose)
+function [onset_time,bootstrapped_error] = compute_onset_from_spikecount( spiketimes, eventtimes, maxduration, verbose)
 %compute_onset_from_spikecount Gives onset based on minimum of corrected cumultive spike count
 %
-% ONSETTIME = compute_onset_from_spikecount(SPIKETIMES, [EVENTTIMES=0], [MAXDURATION], [VERBOSE=false])
+% [ONSET_TIME, STANDARD_ERROR] = compute_onset_from_spikecount(SPIKETIMES, [EVENTTIMES=0], [MAXDURATION], [VERBOSE=false])
 %
 %     SPIKETIMES is a vector with spike times relative to stimulus onset
 %     EVENTTIMES is the time at start of the spike window. if EVENTTIMES is a
@@ -13,11 +13,9 @@ function [onsettime,bootstrapped_error] = compute_onset_from_spikecount( spiketi
 %     given, then MAXDURATION is minimum inter-event interval.
 %     if VERBOSE is true, a figure with the detrended count and onset is
 %     shown.
-% 
-% [ONSETTIME, STANDARD_ERROR] = compute_onset_from_spikecount(SPIKETIMES, [EVENTTIMES=0], [MAXDURATION], [VERBOSE=false])
-%
 %     STANDARD_ERROR is the standard deviation of the onset times computed
-%     by bootstrapping the events.
+%     by bootstrapping the events. If not required, then do not ask for it, 
+%     as then no bootstrapping needs to be done.
 %
 % 2023, Alexander Heimel
 
@@ -32,7 +30,7 @@ if nargin<4 || isempty(verbose)
     verbose = false;
 end
 
-onsettime = NaN;
+onset_time = NaN;
 
 if isempty(spiketimes)
     return
@@ -60,7 +58,7 @@ detrended_count = detrend_count(relspiketimes);
 ind_max = ind_max + 1;
 
 [min_val,ind_min] = min(detrended_count(1:ind_max));
-onsettime = relspiketimes(ind_min);
+onset_time = relspiketimes(ind_min);
 
 if nargout>1 % compute_standard_error 
     num_bootstraps = 30;
@@ -70,11 +68,15 @@ if nargout>1 % compute_standard_error
         bootstrapped_onsettimes(i_bootstrap) = compute_onset_from_spikecount( spiketimes, eventtimes(bootstrap), maxduration, false);
     end
     bootstrapped_error = std(bootstrapped_onsettimes);
+else
+    bootstrapped_error = NaN;
 end
 
 if verbose
     figure
     hold on
     plot(relspiketimes,detrended_count,'-');
-    plot(onsettime,min_val,'o');
+    plot(onset_time,min_val,'o');
+
+    logmsg([ 'Onset_time = ' num2str(onset_time,'%.3f') ' +- ' num2str(bootstrapped_error,'%.3f')]);
 end

@@ -14,7 +14,7 @@ event_duration = prestimulus_duration + stimulus_duration + poststimulus_duratio
 event_times = trial_start_time + pretrial_duration + 0:event_duration:(num_stimuli-1)*event_duration;
 trial_end_time = event_times(end) + event_duration + posttrial_duration;
 
-peak_response = 1; % sp/s
+peak_response = 100; % sp/s
 response_fun = @(t) + peak_response*thresholdlinear(  -(t-1/2-prestimulus_duration).^2 + 1/4  );
 rate_spont = 1; % sp/s
 rate_fun = @(t) rate_spont + sum(response_fun( t - event_times'));
@@ -22,6 +22,14 @@ rate_fun = @(t) rate_spont + sum(response_fun( t - event_times'));
 spiketimes = generate_spiketimes_from_ratefunction(rate_fun, trial_start_time, trial_end_time,true);
 
 [p_zeta,zeta] = zetatest(spiketimes,event_times);
-[onset_time, bootstrapped_error] = compute_onset_from_spikecount( spiketimes, event_times,[],false);
-logmsg(['p_zeta = ' num2str(p_zeta) ', onset_time = ' num2str(onset_time,'%.3f') ' +- ' num2str(bootstrapped_error,'%.3f')]);
+logmsg(['p_zeta = ' num2str(p_zeta) ]);
+
+%% From detrended spikecount
+[onset_time, bootstrapped_error] = compute_onset_from_spikecount( spiketimes, event_times,[],true);
+logmsg([ 'Onset_time = ' num2str(onset_time,'%.3f') ' +- ' num2str(bootstrapped_error,'%.3f')]);
+
+%% From halfheight
+binwidth = 0.1; %s
+[onset_time, bootstrapped_error] = compute_onset_from_halfheight( spiketimes, event_times,binwidth,prestimulus_duration,true);
+logmsg([ 'Onset_time = ' num2str(onset_time,'%.3f') ' +- ' num2str(bootstrapped_error,'%.3f')]);
 
