@@ -19,6 +19,8 @@ function [onset_time,bootstrapped_error] = compute_onset_from_spikecount( spiket
 %
 % 2023, Alexander Heimel
 
+logmsg('DEPRECATED: USE COMPUTE_ONSET_LATENCY INSTEAD');
+
 if nargin<2 || isempty(eventtimes)
     eventtimes = 0;
 end

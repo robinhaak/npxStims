@@ -25,13 +25,11 @@ spike_times = generate_spiketimes_from_ratefunction(rate_fun, trial_start_time, 
 logmsg(['p_zeta = ' num2str(p_zeta) ]);
 
 %% From detrended spikecount
-[onset_time, bootstrapped_error] = compute_onset_from_spikecount( spike_times, event_times,[],true);
+[onset_time, bootstrapped_error] = compute_onset_latency( spike_times, event_times,[],'cusum_minimum',[],true);
 
 %% From halfheight
-binwidth = 0.1; %s
-[onset_time, bootstrapped_error] = compute_onset_from_halfheight( spike_times, event_times,binwidth,prestim_duration,true);
+[onset_time, bootstrapped_error] = compute_onset_latency( spike_times, event_times,prestim_duration,'rate_halfheight',[],true);
 
 %% From threshold
-binwidth = 0.1; %s
-[onset_time, bootstrapped_error] = compute_onset_from_threshold( spike_times, event_times, prestim_duration, binwidth, [], true);
+[onset_time, bootstrapped_error] = compute_onset_latency( spike_times, event_times, prestim_duration, 'rate_threshold', [], true);
 
