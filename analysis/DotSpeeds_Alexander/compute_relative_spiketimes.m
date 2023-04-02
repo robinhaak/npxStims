@@ -8,6 +8,8 @@ function relspiketimes = compute_relative_spiketimes(spiketimes,eventtimes,maxdu
 %      MAXDURATION is the time to collect spikes after each event. If not
 %      given, then MAXDURATION will be the minimum inter-event interval.
 %
+%  RELSPIKETIMES are sorted in ascending time.
+%
 % 2021-2023, Alexander Heimel
 
 if nargin<3 || isempty(maxduration)
