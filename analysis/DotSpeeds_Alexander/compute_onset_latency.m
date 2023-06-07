@@ -99,8 +99,8 @@ else
     isi = diff(relspiketimes);
     max_isi = max(isi);
     relspiketimes = [relspiketimes(1)-max_isi;relspiketimes(:)];
-    if relspiketimes(1)>eventtimes
-        relspiketimes(1) = eventtimes;
+    if relspiketimes(1)>eventtimes(1)
+        relspiketimes(1) = eventtimes(1);
     end
     isi = [relspiketimes(2) - relspiketimes(1) ; isi]; %not used?
     detrended_count = detrend_count(relspiketimes);
