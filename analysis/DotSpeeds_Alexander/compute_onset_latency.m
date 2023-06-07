@@ -102,7 +102,7 @@ else
     if relspiketimes(1)>eventtimes
         relspiketimes(1) = eventtimes;
     end
-    isi = [relspiketimes(2) - relspiketimes(1) ; isi];
+    isi = [relspiketimes(2) - relspiketimes(1) ; isi]; %not used?
     detrended_count = detrend_count(relspiketimes);
     
     rate_spont = sum(relspiketimes < prestim_duration) / prestim_duration / num_events;

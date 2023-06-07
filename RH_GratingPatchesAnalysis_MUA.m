@@ -4,28 +4,33 @@
 %online analysis for 'GratingPatches' using NI stream times
 %you need a GPU to run this script!
 %Robin Haak, Marh 2023
-
-vecChs = flip(1:385); %channels to plot (1= bottom Ch)
-
-%% query user for file names & locations
-%ap.bin en ap.meta
-[strAp,strPathIm] = uigetfile('*.ap.bin','Select imec .ap.bin file','MultiSelect','off');
-sMetaIm = DP_ReadMeta(fullpath(strPathIm,[strAp(1:end-4) '.meta']));
-
-%structEP
-[strLog,strLogPath] = uigetfile('*.mat','Select trial-based log file','MultiSelect','off');
-load(fullpath(strLogPath,strLog)); % %#ok<ows');
-
-%% detect spikes on each channel
-[vecSpikeCh,vecSpikeT,~] = DP_DetectSpikesInBinaryFile(fullpath(strPathIm,strAp),[],[],'int16'); %strClass='int16'
-vecSpikeSecs = double(vecSpikeT)/str2double(sMetaIm.imSampRate)+...
-    str2double(sMetaIm.firstSample)/str2double(sMetaIm.imSampRate); %convert to seconds+add offset
-intNumChs = 385; %str2num(sMetaIm.nSavedChans); %#ok<ST2NM>
+% 
+% vecChs = flip(1:385); %channels to plot (1= bottom Ch)
+% 
+% %% query user for file names & locations
+% %ap.bin en ap.meta
+% [strAp,strPathIm] = uigetfile('*.ap.bin','Select imec .ap.bin file','MultiSelect','off');
+% sMetaIm = DP_ReadMeta(fullpath(strPathIm,[strAp(1:end-4) '.meta']));
+% 
+% %structEP
+% [strLog,strLogPath] = uigetfile('*.mat','Select trial-based log file','MultiSelect','off');
+% load(fullpath(strLogPath,strLog)); % %#ok<ows');
+% 
+% %% detect spikes on each channel
+% [vecSpikeCh,vecSpikeT,~] = DP_DetectSpikesInBinaryFile(fullpath(strPathIm,strAp),[],[],'int16'); %strClass='int16'
+% vecSpikeSecs = double(vecSpikeT)/str2double(sMetaIm.imSampRate)+...
+%     str2double(sMetaIm.firstSample)/str2double(sMetaIm.imSampRate); %convert to seconds+add offset
+% intNumChs = 385; %str2num(sMetaIm.nSavedChans); %#ok<ST2NM>
 
 %% get stimulus onset times
-%to be added: re-alignment of times based on diode data
-vecStimOnSecs = structEP.ActOnNI; %NI stream times
-vecStimOffSecs = structEP.ActOffNI;
+% %to be added: re-alignment of times based on diode data
+% vecStimOnSecs = structEP.ActOnNI; %NI stream times
+% vecStimOffSecs = structEP.ActOffNI;
+
+sAP = sSynthData;
+structEP = sAP.cellStim{1,2}.structEP;  
+vecStimOnSecs = structEP.vecStimOnTime;
+vecStimOffSecs = structEP.vecStimOffTime;
 
 %% get grid data
 vecUniqueRects = unique(structEP.vecDstRect','rows'); %unique dst rects

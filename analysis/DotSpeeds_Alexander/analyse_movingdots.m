@@ -7,21 +7,22 @@ function record = analyse_movingdots(record,db,verbose)
 %  real analysis in done in stimulus specific scripts.
 %
 % 2022-2023, Robin Haak, Alexander Heimel
+%
+% 1 June 2023, cleaned up the code to make it more compatible with
+% Acquipix output, removed compatability with MUA/sSynthesis
+%
 
 if nargin<2 || isempty(db)
     db = [];
 end
 if nargin<3 || isempty(verbose)
-    verbose = true;
+    verbose = true; %#ok<NASGU> 
 end
 sParams = RH_defaultParameters();
 
-% if verbose
-%    record = RH_analyse_synchronization(record,verbose);
-% end
-
-%% Load data
-% check which channels or clusters to analyse
+%% load data
+% check which clusters to analyse
+% N.B., these indices should correspond to sAP.sCluster.IdxClust!
 vecClustersToAnalyze = get_channels2analyze( record );
 
 strSessionPath = fullfile(sParams.strOutputPath,record.project,'Data_collection',record.dataset,record.subject,record.sessionid);
@@ -32,16 +33,12 @@ end
 
 strLog = fullfile(strSessionPath,[record.sessionid '.mat']);
 sVars = whos('-file',strLog);
-if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
-    % single unit data
-    load(strLog,'sSynthData'); %rm sSynthData later
+if contains('sAP',{sVars.name})
+    %load 'sAP', Acquipix output format
+    load(strLog,'sAP');
     ind = [];
-    for i = 1:length(sSynthData.cellStim)
-        if strcmp(sSynthData.cellStim{i}.structEP.strExpType,record.stimulus)
-            ind = [ind i]; %#ok<AGROW>
-            continue
-        end
-        if isfield(sSynthData.cellStim{i}.structEP,'strStimSet') && strcmp(sSynthData.cellStim{i}.structEP.strStimSet,record.stimulus)
+    for i = 1:length(sAP.cellBlock)
+        if isfield(sAP.cellBlock{i},'strStimSet') && strcmp(sAP.cellBlock{i}.strStimSet,record.stimulus)
             ind = [ind i]; %#ok<AGROW>
             continue
         end            
@@ -52,16 +49,23 @@ if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
     end
     if length(ind)>1
         logmsg(['More than one stimulus ' record.stimulus ' in '  strLog]);
-        logmsg('Using first stimulus');
-        ind = 1;
+        logmsg('These stimulus blocks were found:');
+        for i = 1:length(ind)
+            fprintf('- [%d] %s started @%s, presented %d/%d trials\n',ind(i),sAP.cellBlock{ind(i)}.strStimSet,sAP.cellBlock{ind(i)}.strStartTime,...
+                length(sAP.cellBlock{ind(i)}.vecStimOnTime),sAP.cellBlock{ind(i)}.intTrialNum);
+        end
+        prompt = 'Stimulus block to use = ';
+        ind = input(prompt);
     end
     
-    structEP = sSynthData.cellStim{ind}.structEP;
-    sCluster = sSynthData.sCluster;
+    %makes it a but more convenient to work with the data
+    structEP = sAP.cellBlock{ind};
+    sCluster = sAP.sCluster;
     
     if isempty(vecClustersToAnalyze)
         vecClustersToAnalyze = unique([sCluster.IdxClust]);
     end
+
     intNumClusters = length(vecClustersToAnalyze);
     vecSpikeTimesOfCluster = cell(intNumClusters,1);
     for c = 1:intNumClusters
@@ -71,74 +75,62 @@ if contains('sSynthData',{sVars.name}) %contains('sCluster',{sVars.name})
         end
     end
     
+    %stimulus onset/offset times
     vecStimOnTime = structEP.vecStimOnTime;
     vecStimOffTime = structEP.vecStimOffTime;
-    %     sMeta = sSynthData.sMetaNI;
-    %     dblStartT = str2double(sMeta.firstSample) / str2double(sMeta.niSampRate);
-    %     vecStimOnTime = structEP.ActOnNI - dblStartT;
-    %     vecStimOffTime = structEP.ActOffNI - dblStartT;
 else
-    % unsorted channels
-    load(strLog,'structEP');
-    load(fullfile(strSessionPath,'spikes.mat'),'vecSpikeCh','vecSpikeSecs');
-    
-    if isempty(vecClustersToAnalyze)
-        vecClustersToAnalyze = unique(vecSpikeCh);
-    end
-    intNumClusters = length(vecClustersToAnalyze);
-    vecSpikeTimesOfCluster = cell(intNumClusters,1);
-    for c = 1:intNumClusters
-        vecSpikeTimesOfCluster{c} = vecSpikeSecs(vecSpikeCh==vecClustersToAnalyze(c));
-    end
-    
-    %to be added: re-alignment of times based on diode data
-    vecStimOnTime = structEP.ActOnNI; %NI stream times
-    vecStimOffTime = structEP.ActOffNI;
+    logmsg(['Did not find any Acquipix output in ' strSessionPath]);
 end
 
-%% Compute measures
+%% measures
+% compute stimulus start positions
 record.sStimuli = structEP.sAllDots;
 
-vecStimStartX_pix = cellfun( @(x) mean([x(1,1),x(3,1)]), record.sStimuli.vecBoundingRect) - structEP.sStimParams.intScreenWidth_pix/2 ; % center of screen is 0
+    %take the middle of the dot
+    vecStimStartX_pix = cellfun( @(x) mean([x(1,1),x(3,1)]), record.sStimuli.vecBoundingRect(1)) ...
+        - structEP.sStimParams.intScreenWidth_pix/2 ; % center of screen is 0
+
 record.sStimuli.vecStimStartX_pix = vecStimStartX_pix;
 
-logmsg('Assuming Left and right stimuli are in the same order for delta T calculation');
-warning('off','zetatest:InsufficientSamples');
+if strcmp(structEP.strStimSet,'dot_speeds')
+    logmsg('Assuming Left and right stimuli are in the same order for delta T calculation');
+end
 
 measures = struct([]);
 indMeasures = 0;
-dblIntertrialInterval =  structEP.sStimParams.dblSecsPreBlank + structEP.sStimParams.vecSecsPostBlank(1);
-for c = 1:length(vecClustersToAnalyze) % over clusters or channels
-    logmsg(['Computing cluster/channel index ' num2str(vecClustersToAnalyze(c)) ...
+dblIntertrialInterval =  structEP.sStimParams.dblSecsPreBlank + min(structEP.sStimParams.vecSecsPostBlank); %'vecSecsPostBlank' might be > 1 if ITI is randomized
+warning('off','zetatest:InsufficientSamples');
+for c = 1 :length(vecClustersToAnalyze)
+    logmsg(['Computing measures for cluster ' num2str(vecClustersToAnalyze(c)) ...
         ' (' num2str(c) ' of '  num2str(intNumClusters) '), ' num2str(length(vecSpikeTimesOfCluster{c})) ' spikes'])
     if length(vecSpikeTimesOfCluster{c}) < 1
         continue
     end
-    
+
     indMeasures = indMeasures + 1;
+
+    % store some cluster data for later
     measure.intIndex = vecClustersToAnalyze(c);
-    
-    if exist('sCluster','var')
-        ind = find([sCluster.IdxClust]==measure.intIndex);
-        measure.dblDepth_um = sCluster(ind).Depth; %#ok<FNDSB>
-    else
-        measure.dblDepth_um = 1000 - c; %before: measure.depth
-    end
-    
-    intNumUniqueStimuli = length(structEP.sAllDots.stimID);
+    ind = find([sCluster.IdxClust]==measure.intIndex);
+    measure.dblDepthBelowIntersect_um = sCluster(ind).DepthBelowIntersect;
+    measure.Area = sCluster(ind).Area;
+    measure.NonStationarity = sCluster(ind).NonStationarity;
+    measure.Violations1ms = sCluster(ind).Violations1ms;
 
-    measure.dblRateSpontaneous = computeRateSpontaneous( vecSpikeTimesOfCluster{c}, vecStimOnTime,vecStimOffTime, sParams);
-    measure.vecDuration = zeros(1,intNumUniqueStimuli);
-    measure.vecNRepeats = zeros(1,intNumUniqueStimuli);
+    measure.dblRateSpontaneous = ... % compute spontaneous rate from ITIs 
+        computeRateSpontaneous(vecSpikeTimesOfCluster{c},vecStimOnTime,vecStimOffTime,sParams);
 
-    vecPreStimTime = zeros(1,intNumUniqueStimuli);
-    
+    intNumStimuli = length(structEP.sAllDots.stimID);
+    measure.vecDuration = zeros(1,intNumStimuli);
+    measure.vecNRepeats = zeros(1,intNumStimuli);
+
+    vecPreStimTime = zeros(1,intNumStimuli);
     switch record.stimulus
         case 'dot_diffhist'
             % try to equalize period with spontaneous data as much as the
             % interstimulus period allows for
 
-            vecPreStimTime = record.sStimuli.vecStimStartX_pix ./ record.sStimuli.vecSpeed_pix ;
+            vecPreStimTime = record.sStimuli.vecStimStartX_pix ./ record.sStimuli.vecSpeed_pix;
             dblMinPreStimTime = max(vecStimOffTime(1:end-1)-vecStimOnTime(2:end)); % shortest prestim time
             vecPreStimTime = vecPreStimTime(1) - vecPreStimTime;
             vecPreStimTime(vecPreStimTime<dblMinPreStimTime) = dblMinPreStimTime;
@@ -146,10 +138,11 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
             % for presentation purpose it might be nicer to then also add
             % poststimulus time to equalize the trial duration
         otherwise
-            % No change needed
+            % no change needed
     end
 
-    for i = 1:length(structEP.sAllDots.stimID)
+    %loop trough unique stimulus conditions
+    for i = 1:intNumStimuli
         stimID = structEP.sAllDots.stimID(i);
         indStims = find(structEP.vecStimID == stimID);
 
@@ -158,14 +151,15 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.vecDuration(i) = mean(vecStimOffTime(indStims) - vecStimOnTime(indStims));
         measure.vecNRepeats(i) = length(indStims);
         
-        [ dblZetaP,sZETA] = zetatest(vecSpikeTimesOfCluster{c},...
-            vecEventStarts,measure.vecDuration(i)+dblIntertrialInterval); 
-        
+        [dblZetaP,sZETA] = zetatest(vecSpikeTimesOfCluster{c},...
+            vecEventStarts,measure.vecDuration(i)+dblIntertrialInterval); %here, we add the ITI in case the RF is close to the border of the screen
+
         measure.vecZetaP(i) = dblZetaP;
 
-        measure.cellSpikeTimes{i} =sZETA.vecSpikeT(2:end-1) + vecPreStimTime(i);  % spiketimes, ZETA has padded extra points at beginning and end
+        measure.cellSpikeTimes{i} = sZETA.vecSpikeT(2:end-1) + vecPreStimTime(i);  % spiketimes, ZETA has padded extra points at beginning and end
         measure.vecNSpikes(i) = length(measure.cellSpikeTimes{i} );
-        
+
+        %later, it might be nice to change this into the IFR
         [vecSpikeCount,vecEdges] = histcounts(measure.cellSpikeTimes{i},'BinWidth',sParams.dblBinWidth);
         vecCenters = (vecEdges(1:end-1)+vecEdges(2:end))/2;
         [dblPeak,indPeak] = max(vecSpikeCount);
@@ -174,20 +168,26 @@ for c = 1:length(vecClustersToAnalyze) % over clusters or channels
         measure.vecPeakTime(i) = vecCenters(indPeak);
         measure.vecPeakRate(i) = dblPeak / sParams.dblBinWidth / measure.vecNRepeats(i);
         measure.vecOnsetTime(i) = NaN;
-        measure.vecOnsetTime(i) = compute_onset_from_spikecount( measure.cellSpikeTimes{i} );
-        measure.vecMeanRate(i) = (length(measure.cellSpikeTimes{i}))/measure.vecDuration(i)/measure.vecNRepeats(i);
+        dblOnsetTime =  compute_onset_from_spikecount( measure.cellSpikeTimes{i} );
+        if ~isempty(dblOnsetTime)
+            measure.vecOnsetTime(i) = dblOnsetTime;
+        end
+        %measure.vecMeanRate(i) = (length(measure.cellSpikeTimes{i}))/measure.vecDuration(i)/measure.vecNRepeats(i);
+        %> I guess we need to add the ITI here, since it's also added for the zetatest
+        measure.vecMeanRate(i) = (length(measure.cellSpikeTimes{i}))/(measure.vecDuration(i)+dblIntertrialInterval)/measure.vecNRepeats(i);
+
     end % stim i
 
-    intNumStimuli = length(measure.vecZetaP);
     measure.vecResponsive = measure.vecZetaP<min(sParams.dblThresholdResponsiveZetaP,1/intNumStimuli);
     
+    %compute set-specific measures
     switch record.sStimuli.strStimSet
         case 'dot_speeds'
-            measure = compute_dot_speeds_measures( measure, record );
+            measure = compute_dot_speeds_measures(measure, record);
         case 'flashing_dots'
-            measure = compute_flashing_dots_measures( measure, record, structEP.sStimParams );
+            measure = compute_flashing_dots_measures(measure, record, structEP.sStimParams);
         case 'dot_diffhist'
-            measure = compute_dot_diffhist_measures( measure, record, db );
+            measure = compute_dot_diffhist_measures(measure, record, db);
         otherwise
             logmsg(['Analysis not implemented of ' record.sStimuli.strStimSet])
     end
@@ -240,7 +240,9 @@ record.measures = measures;
 logmsg(['Analyzed ' recordfilter(record)]);
 end
 
-function measure = compute_dot_speeds_measures( measure, record )
+%% set-specific functions
+% %'dot_speeds'
+function measure = compute_dot_speeds_measures(measure, record)
 
 sParams = RH_defaultParameters();
 
@@ -248,7 +250,6 @@ indLeft = find([record.sStimuli.vecDirection]==0);
 indRight = find([record.sStimuli.vecDirection]==180);
 
 vecSpeed_pix = record.sStimuli.vecSpeed_pix;
-
 
 % DeltaT>0 response to stimulus in the past.
 % DeltaT<0 response to stimulus in the future.
@@ -331,7 +332,7 @@ indNaN = (measure.vecMeanXRF_pix > max(vecStimStartX_pix) | measure.vecMeanXRF_p
 measure.vecMeanXRF_pix(indNaN) =  NaN;
 measure.vecMeanDeltaT(indNaN) = NaN;
 
-% Comput fits on based of peak times for different velocities
+% Compute fits on based of peak times for different velocities
 % peakTime =  1/v (xRF - x0) + DeltaT
 % we can fit xRF and DeltaT independently for each direction
 
@@ -378,23 +379,27 @@ else
 end
 end
 
-function measure = compute_dot_diffhist_measures( measure, record, db )
+%'dot_diffhist'
+function measure = compute_dot_diffhist_measures(measure,record,db)
 
-sMeasuresFlashingDots = get_related_measures( record, 'stimulus=flashing_dots', db, measure.intIndex );
+sMeasuresFlashingDots = get_related_measures(record,'stimulus=flashing_dots',db,measure.intIndex);
 measure.lmBefore = [];
-
-if ~isempty(sMeasuresFlashingDots ) && isfield( sMeasuresFlashingDots,'dblXRFLeft_pix') && ~isempty( sMeasuresFlashingDots.dblXRFLeft_pix)
+measure.lmBefore_Peak = [];
+if ~isempty(sMeasuresFlashingDots) && isfield(sMeasuresFlashingDots,'dblXRFLeft_pix') && ~isempty(sMeasuresFlashingDots.dblXRFLeft_pix)
     ind = find(record.sStimuli.vecStimStartX_pix<sMeasuresFlashingDots.dblXRFLeft_pix  & measure.vecResponsive) ;
     vecStimPos_pix = timeToStimulusCenterPosition(measure.vecOnsetTime(ind),record.sStimuli,ind);
+    vecStimPosPeak_pix = timeToStimulusCenterPosition(measure.vecPeakTime(ind),record.sStimuli,ind);
+
     if length(ind)>2
         measure.lmBefore = fitlm(record.sStimuli.vecStimStartX_pix(ind), vecStimPos_pix);
+        measure.lmBefore_Peak = fitlm(record.sStimuli.vecStimStartX_pix(ind), vecStimPosPeak_pix);
     end
 end
-
-
 end
 
-function measure = compute_flashing_dots_measures( measure, record, sStimParams )
+
+%'flashing_dots'
+function measure = compute_flashing_dots_measures(measure, record, sStimParams)
 
 measure.vecResponsive = measure.vecResponsive & measure.vecPeakTime<0.250 & measure.vecPeakTime>0.030;
 

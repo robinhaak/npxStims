@@ -1,8 +1,9 @@
 
-%GRATINGSPATCHES
-%show patches of (drifting) gratings at different locations on the screen the screen
+%OPTOGRATINGS
+%show full-screen, static gratings
+% & optogenetically stimulate during half of the trials
 %
-%Robin Haak, updated 15 March 2023
+%Robin Haak, 30 March 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -11,8 +12,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true;
-boolUseNI = true;
+boolUseSGL = false;
+boolUseNI = false;
 boolDebug = false;
 
 %defaults
@@ -66,18 +67,18 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
 
     %stimulus parameters
-    sStimParamsSettings.dblStimulusSize_deg = 9; %6 %deg; (approximate) size of grating patches
-    sStimParamsSettings.dblSpatialFrequency_cd = 1/sStimParamsSettings.dblStimulusSize_deg;%* %0.04; %spatial frequency in cycles per degree
-    sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
+%     sStimParamsSettings.dblStimulusSize_deg =  %deg; (approximate) size of grating patches
+    sStimParamsSettings.dblSpatialFrequency_cd = 0.08; %spatial frequency in cycles per degree
+%     sStimParamsSettings.dblTemporalFrequency = 0; %temporal frequency in cycles per second (0=static)
     sStimParamsSettings.dblSecsDuration = 0.5; %s
     sStimParamsSettings.dblSecsInitialBlank = 5; %s
     sStimParamsSettings.dblSecsPreBlank = 0.35; %0.25 %s
     sStimParamsSettings.dblSecsPostBlank = 0.15; %0.25; %0.5 %s
     sStimParamsSettings.dblSecsEndBlank = 5; %s
-    sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of direction or phase)
-    sStimParamsSettings.vecDirections = [0 180]; %[0 90 180 270]; %drifting directions (only [0 90 180 270], otherwise it gets funky)
-    sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is downward motion';
-    %*for size= 9deg & tf= 3Hz, spf= ~0.11c/deg, speed= 27deg/s
+    sStimParamsSettings.intStimulusRepeats = 50; %per condition
+    sStimParamsSettings.vecOrientations = [0 90]; %only 0 & 90, otherwise it gets funky
+    sStimParamsSettings.str90Deg = '0 degrees is horizontal; 90 degrees is vertical';
+    sStimParamsSettings.boolUseOpto = true;
 
     %control variables
     sStimParamsSettings.intUseDaqDevice = 1; %ID of DAQ device
@@ -232,66 +233,38 @@ try
 
     %% prepare stimuli
     %set additional parameters
-    %sStimParams.dblPixelsPerDeg = sStimParams.intScreenWidth_pix/sStimParams.dblScreenWidth_deg;
     sStimParams.dblPixelsPerDeg = mean([(sStimParams.intScreenWidth_pix/sStimParams.dblScreenWidth_deg) ...
         (sStimParams.intScreenHeight_pix/sStimParams.dblScreenHeight_deg)]); %added this line(and commented the one before Feb 10th '23)
-    sStimParams.intStimulusSize_pix = ceil(sStimParams.dblStimulusSize_deg*sStimParams.dblPixelsPerDeg); %pix, rounded up
-    if mod(sStimParams.intStimulusSize_pix,2)==0
-        intFullTexSize_pix = sStimParams.intStimulusSize_pix*2;
-    else
-        sStimParams.intStimulusSize_pix = sStimParams.intStimulusSize_pix-1;
-        intFullTexSize_pix = (sStimParams.intStimulusSize_pix-1)*2;
-    end
     sStimParams.dblSpatialFrequency_cp = sStimParams.dblSpatialFrequency_cd/sStimParams.dblPixelsPerDeg; %cycles/pix
     intPixelsPerCycle = ceil(1/sStimParams.dblSpatialFrequency_cp); %pix/cycle, rounded up
     dblSpatialFrequency_rad = sStimParams.dblSpatialFrequency_cp*2*pi; %radians
 
     %create grating textures
+    intFullTexSize_pix = sStimParams.intScreenWidth_pix;
     vecX = meshgrid(-intFullTexSize_pix:intFullTexSize_pix+intPixelsPerCycle,1);
-    matGrating = sStimParams.intBackground+(sStimParams.intWhite-sStimParams.intBackground)*cos(dblSpatialFrequency_rad*vecX);
-    intGratingTex_1 = Screen('MakeTexture',ptrWindow,matGrating);
-    intGratingTex_2 = Screen('MakeTexture',ptrWindow,sStimParams.intWhite-matGrating); %different phase
+    matGrating = sStimParams.intBackground+(sStimParams.intWhite-sStimParams.intBackground)*sin(dblSpatialFrequency_rad*vecX);
+    intGratingTex0_1 = Screen('MakeTexture',ptrWindow,matGrating);
+    intGratingTex0_2 = Screen('MakeTexture',ptrWindow,sStimParams.intWhite-matGrating); %different phase
 
-    %create mask
-    matMask = ones(2*intFullTexSize_pix+1,2*intFullTexSize_pix+1,2)*sStimParams.intBackground;
-    [matX,matY] = meshgrid(-intFullTexSize_pix:intFullTexSize_pix,-intFullTexSize_pix:intFullTexSize_pix);
-    matMask(:,:,2) = ~buildCircularCosineRampPix(size(matX,1),sStimParams.intStimulusSize_pix,2);
-    intMaskTex=Screen('MakeTexture',ptrWindow,matMask);
-
-    %calculate shift per frame
-    intPixelsPerCycle = 1/sStimParams.dblSpatialFrequency_cp; %pix/cycle, re-calculate w/o ceil() to prevent errors later on
-    dblShiftPerFrame = sStimParams.dblTemporalFrequency*intPixelsPerCycle*(1/dblStimFrameRate);
-
-    %get grid data
-    intPosX = floor(sStimParams.intScreenWidth_pix/sStimParams.intStimulusSize_pix);
-    intPosY = floor(sStimParams.intScreenHeight_pix/sStimParams.intStimulusSize_pix);
-    vecPosX = linspace(0,(intPosX-1)*sStimParams.intStimulusSize_pix,intPosX);
-    vecPosY = linspace(0,(intPosY-1)*sStimParams.intStimulusSize_pix,intPosY);
-
-    %adjust so that grid is centered
-    vecPosX = vecPosX + ((sStimParams.intScreenWidth_pix-(max(vecPosX)+sStimParams.intStimulusSize_pix))/2);
-    vecPosY = vecPosY + ((sStimParams.intScreenHeight_pix-(max(vecPosY)+sStimParams.intStimulusSize_pix))/2);
-
-    %create grid of left top corner locations
-    [matPosX, matPosY] = meshgrid(vecPosX,vecPosY);
-
-    %randomize locations for stimulus presentation
-    vecStimulusConditionIDs = 1:(length(vecPosX)*length(vecPosY));
-    vecStimulusPresentationIDs = []; for intRepeat = 1:sStimParams.intStimulusRepeats, ...
-            vecStimulusPresentationIDs = [vecStimulusPresentationIDs vecStimulusConditionIDs(randperm(length(vecStimulusConditionIDs)))]; end %#ok<AGROW>
-    intTotalTrials = length(vecStimulusPresentationIDs);
-
+    %compute no. trials
+    intTotalTrials = sStimParams.intStimulusRepeats*numel(sStimParams.vecOrientations);
+    if sStimParams.boolUseOpto
+        intTotalTrials = intTotalTrials*2;
+    end
+ 
     %create randomized direction vector
-    vecDirection = repmat(sStimParams.vecDirections,[1 floor(intTotalTrials/length(sStimParams.vecDirections))]);
-    vecDirection = [vecDirection vecDirection(1:(intTotalTrials-length(vecDirection)))];
-    vecDirection = vecDirection(randperm(length(vecDirection)));
+    vecOrientation = repmat(sStimParams.vecOrientations,[1 floor(intTotalTrials/length(sStimParams.vecOrientations))]);
+    vecOrientation = [vecOrientation vecOrientation(1:(intTotalTrials-length(vecOrientation)))];
+    vecOrientation = vecOrientation(randperm(length(vecOrientation)));
 
     %randomize stimulus texture
     %vecTexture = repmat([intGratingTex_1 intGratingTex_2],[1
     %intTotalTrials/2]); this somehow stoppped working on March 14th 2023
-    vecTexture = repmat(intGratingTex_1,[1 intTotalTrials]);
-    vecTexture(1:round(intTotalTrials/2)) = intGratingTex_2;
+    vecTexture = repmat(intGratingTex0_1,[1 intTotalTrials]);
+    vecTexture(1:round(intTotalTrials/2)) = intGratingTex0_2;
     vecTexture = vecTexture(randperm(length(vecTexture)));
+
+%randomize opto trials
 
     %% build structEP
     %stimulus timing info
@@ -307,8 +280,6 @@ try
     structEP.TrialNumber = nan(1,structEP.intTrialNum);
     structEP.dblStimFrameDur = dblStimFrameDur;
     structEP.dblInterFlipInterval = dblInterFlipInterval;
-    structEP.dblStimulusSize_deg = repmat(sStimParams.dblStimulusSize_deg,[1 structEP.intTrialNum]);
-    structEP.intStimulusSize_pix = repmat(sStimParams.intStimulusSize_pix,[1 structEP.intTrialNum]);
     structEP.ActOnSecs = nan(1,structEP.intTrialNum);
     structEP.ActOffSecs = nan(1,structEP.intTrialNum);
     structEP.ActStartSecs = nan(1,structEP.intTrialNum);
@@ -316,7 +287,7 @@ try
     structEP.ActOnNI = nan(1,structEP.intTrialNum);
     structEP.ActOffNI = nan(1,structEP.intTrialNum);
     structEP.vecDstRect= nan(4,structEP.intTrialNum);
-    structEP.vecDirection = nan(1,structEP.intTrialNum);
+    structEP.vecOrientation = nan(1,structEP.intTrialNum);
     structEP.vecTexture = nan(1,structEP.intTrialNum);
     structEP.vecTrialStartSecs = initialBlank:trialDur:(totalLength-endBlank-1);
     structEP.vecTrialStimOnSecs = structEP.vecTrialStartSecs+sStimParams.dblSecsPreBlank;
@@ -404,12 +375,10 @@ try
         end
 
         %get stimulus position on screen
-        vecDstRect = [matPosX(vecStimulusPresentationIDs(intThisTrial)),matPosY(vecStimulusPresentationIDs(intThisTrial)),...
-            matPosX(vecStimulusPresentationIDs(intThisTrial))+sStimParams.intStimulusSize_pix,...
-            matPosY(vecStimulusPresentationIDs(intThisTrial))+sStimParams.intStimulusSize_pix];
-
+        vecDstRect = [1 1 sStimParams.intScreenWidth_pix sStimParams.intScreenHeight_pix];
+        
         %so that 0 = rightward motion
-        dblAngle = vecDirection(intThisTrial)+180;
+        dblAngle = vecOrientation(intThisTrial)+180;
         if dblAngle >= 360, dblAngle = dblAngle-360; end
 
         %get texture
@@ -417,10 +386,10 @@ try
 
         %add to structEP
         structEP.vecDstRect(:,intThisTrial) = vecDstRect;
-        structEP.vecDirection(intThisTrial) = vecDirection(intThisTrial);
-        if vecTexture(intThisTrial) == intGratingTex_1
+        structEP.vecOrientation(intThisTrial) = vecOrientation(intThisTrial);
+        if vecTexture(intThisTrial) == intGratingTex0_1
             structEP.vecTexture(intThisTrial) = 0;
-        elseif vecTexture(intThisTrial) == intGratingTex_2
+        elseif vecTexture(intThisTrial) == intGratingTex0_2
             structEP.vecTexture(intThisTrial) = 0;
         end
 
@@ -455,9 +424,7 @@ try
         intFrame = 1;
         refTimeLocal = tic;
         while toc(refTime)<(sStimParams.dblSecsDuration-2*dblStimFrameDur)
-            dblOffsetX = mod((intFrame-1)*dblShiftPerFrame,intPixelsPerCycle);
-            vecSrcRect=[dblOffsetX 0 dblOffsetX + sStimParams.intStimulusSize_pix sStimParams.intStimulusSize_pix];
-            Screen('DrawTexture',ptrWindow,intGratingTex,vecSrcRect,vecDstRect,dblAngle);
+                    Screen('DrawTexture',ptrWindow,intGratingTex,vecDstRect,vecDstRect,dblAngle);
             Screen('FillRect',ptrWindow,sStimParams.intWhite,vecDiodeRect);
             Screen('DrawingFinished',ptrWindow);
             dblLastFlip = Screen('Flip',ptrWindow,dblLastFlip+dblInterFlipInterval/2);

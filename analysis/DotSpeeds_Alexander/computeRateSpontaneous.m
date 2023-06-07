@@ -20,4 +20,3 @@ end
 if intCount<10
     logmsg('Less than 10 spikes to compute spontaneous rate.')
 end
-end

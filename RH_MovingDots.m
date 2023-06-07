@@ -1,7 +1,7 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last update: 16 March 2023
+%Robin Haak, last updated on 5 June 2023
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,8 +10,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true; %true;
-boolUseNI = true; %true;
+boolUseSGL = false; %true;
+boolUseNI = false; %true;
 boolDebug = false;
 
 %defaults
@@ -109,7 +109,7 @@ fprintf('Saving output in directory %s;\n',strLogDir); %no textures are loaded f
 %stimulus set
 fprintf('--Select stimulus set--\n')
 fprintf(['\nAvailable sets (in <strong>bold</strong>):\n(1)"dot_grid"\n(2)"dot_variations"\n<strong>(3)"dot_speeds"\n</strong>(4)"dot_reversal"\n' ...
-    '<strong>(5)"flashing_dot"</strong>\n<strong>(6)"dot_diffhist"</strong>\n<strong>(7)"dot_disappear"</strong>\n\n']);
+    '<strong>(5)"flashing_dot"</strong>\n<strong>(6)"dot_diffhist"</strong>\n"dot_disappear"\n\n']);
 intStimSet = input('intStimSet= ');
 sStimParams.intStimSet = intStimSet;
 
@@ -270,10 +270,23 @@ try
     structEP.TrialNum = nan(1,structEP.intTrialNum);
     structEP.dblStimFrameDur = dblStimFrameDur;
     structEP.dblInterFlipInterval = dblInterFlipInterval;
+
     structEP.vecStimID = [];
-    for intRep = 1:sStimParams.intReps
-        structEP.vecStimID = [structEP.vecStimID vecStimID(randperm(length(vecStimID)))];
-    end
+    for intRep = 1:sStimParams.intReps, structEP.vecStimID = [structEP.vecStimID vecStimID(randperm(length(vecStimID)))];end
+%     
+%     %make sure there are no repeating trials
+%     while sum(diff(structEP.vecStimID)==0) > 0
+%         vecRepeatInd = find(diff(structEP.vecStimID)==0);
+%         for indRep = 1:numel(vecRepeatInd)
+%             indRepeat = vecRepeatInd(indRep)+1;
+%             if indRepeat < numel(structEP.vecStimID)-5
+%                 structEP.vecStimID([indRepeat indRepeat+5]) = structEP.vecStimID([indRepeat + 5 indRepeat]);
+%             else
+%                 structEP.vecStimID([indRepeat indRepeat-5]) = structEP.vecStimID([indRepeat-5 indRepeat]);
+%             end
+%         end
+%     end
+  
     for intTrial = 1:structEP.intTrialNum
         structEP.vecBoundingRect{intTrial} = sAllDots.vecBoundingRect{sAllDots.stimID==structEP.vecStimID(intTrial)};
         structEP.vecColor{intTrial} = sAllDots.vecColor{sAllDots.stimID==structEP.vecStimID(intTrial)};

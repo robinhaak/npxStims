@@ -257,7 +257,7 @@ elseif intStimSet == 2
 elseif intStimSet == 3
     %% (3) 'dot_speeds' - dots moving continuously at different speeds
     %set speeds
-    sStimParams.vecDotSpeeds_deg = [6 15 30 60 120];%[3 6 15 30 60 120]; % deg/s
+    sStimParams.vecDotSpeeds_deg = [15 30]; %[6 15 30 60 120];%[3 6 15 30 60 120]; % deg/s
     sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; % pixels/s
     sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate); % pixels/frame
     if sum(sStimParams.vecDotSpeeds_ppf == 0) > 0
@@ -433,7 +433,7 @@ elseif intStimSet == 4
 elseif intStimSet == 5
     %% (5) 'flashing_dot' - dots flashing at different positions along a straight trajectory
     %set parameters
-    sStimParams.intReps = 20; %25; %same as for the moving dots
+    sStimParams.intReps = 25;
     sStimParams.intSpacing_pix = sStimParams.intSize_pix;
     sStimParams.dblFlashTime = 0.25; %0.5;
     sStimParams.intFlashFrames = round(sStimParams.dblFlashTime/(1/sStimParams.intStimFrameRate));
@@ -464,81 +464,35 @@ elseif intStimSet == 5
 elseif intStimSet == 6
     %% (6) 'dot_diffhist' - dots starting at different positions along a straight trajectory
     %set parameters
-    sStimParams.intReps = 20; %25;
-    sStimParams.intSpacing_pix = round(1.5*sStimParams.intSize_pix);%55; %sStimParams.intSize_pix;
-    sStimParams.vecDotSpeeds_deg = 15;%approx. speed in deg/s
+    sStimParams.intReps = 25;
+    sStimParams.intSpacing_pix = round(2*sStimParams.intSize_pix);
+    sStimParams.vecDotSpeeds_deg = sort([15 30], 'ascend'); %approx. speed in deg/s  30 60 120
     sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
     sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
     sStimParams.vecDirections = [0]; %#ok<NBRAK> %[0 180] is rightward & 90 is downward motion, for now only 0 and 180 are available (with the exception of 'dot_grid')
 
-    %create base trajectory
-    vecBaseRect = [];
-    vecBaseRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
-    vecBaseRect(2,:) = repmat(sStimParams.intRespPosY_pix-sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
-    vecBaseRect(3,:) = vecBaseRect(1,:)+sStimParams.intSize_pix;
-    vecBaseRect(4,:) = repmat(sStimParams.intRespPosY_pix+sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
+    %     %option 1 - all trials are the same length (i.e., dot is same color as background for the first part of the trajectory)
+    %     %create base trajectory
+    %     vecBaseRect = [];
+    %     vecBaseRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
+    %     vecBaseRect(2,:) = repmat(sStimParams.intRespPosY_pix-sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
+    %     vecBaseRect(3,:) = vecBaseRect(1,:)+sStimParams.intSize_pix;
+    %     vecBaseRect(4,:) = repmat(sStimParams.intRespPosY_pix+sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
 
-    %option 1
-    %get some parameters
-    intStart = sStimParams.intRespPosX_pix-(sStimParams.intScreenWidth_pix/3); %was:/2
-    indEnd = length(vecBaseRect);
-    if intStart < 0
-        %intStart_old = intStart;
-        intStart = 0;
-        %indEnd = indEnd-interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),abs(intStart_old),'nearest');
-    end
-    indStart = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intStart,'nearest');
-    indAdd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),(intStart+sStimParams.intSpacing_pix),'nearest')-indStart-1;
-
-    %correct baserect length
-    vecBaseRect = vecBaseRect(:,indStart:indEnd);
-    indStart = 1;
-
-    %create sAllDots
-    sAllDots = struct;
-    sAllDots.strStimSet = 'dot_diffhist';
-    intStimIdx = 1;
-    %     for intStim = 1:intNumTraj
-    while 1
-        sAllDots.stimID(intStimIdx) = intStimIdx;
-        sAllDots.vecBoundingRect{intStimIdx} = vecBaseRect; %vecBaseRect(:,indStart:end);
-        sAllDots.vecDirection(intStimIdx) = 0;
-        sAllDots.vecColor{intStimIdx} = repmat(255,size(sAllDots.vecBoundingRect{intStimIdx}(1,:))); %repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-        sAllDots.vecColor{intStimIdx}(indStart:end) = sStimParams.dblColor;
-        if any(diff(sAllDots.vecColor{intStimIdx}))
-            sAllDots.vecReversalFrame(intStimIdx) = find(diff(sAllDots.vecColor{intStimIdx}))+1; %NaN(size(sAllDots.vecBoundingRect));
-        else
-            sAllDots.vecReversalFrame(intStimIdx) = 1 ;
-        end
-        sAllDots.vecSpeed_deg(intStimIdx) = sStimParams.vecDotSpeeds_deg;
-        sAllDots.vecSpeed_pix(intStimIdx) = sStimParams.vecDotSpeeds_pix;
-        intStimIdx = intStimIdx+1;
-        indStart = indStart + indAdd;
-        if vecBaseRect(1,indStart) > (sStimParams.intRespPosX_pix) % + sStimParams.intSpacing_pix)
-            break
-        else
-            continue
-        end
-
-    end
-    sAllDots.intStimulusConditions = intStimIdx-1;
-    sAllDots.vecStimName = repmat({'classic_short'},size(sAllDots.vecBoundingRect));
-
-    % option 2
-    %     %get some parameters
-    %     intStart = sStimParams.intRespPosX_pix-(sStimParams.intScreenWidth_pix/2);
+    %   get some parameters
+    %     intStart = sStimParams.intRespPosX_pix-(sStimParams.intScreenWidth_pix/3); %was:/2
     %     indEnd = length(vecBaseRect);
     %     if intStart < 0
-    %         intStart_old = intStart;
+    %         %intStart_old = intStart;
     %         intStart = 0;
-    %         indEnd = indEnd-interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),abs(intStart_old),'nearest');
+    %         %indEnd = indEnd-interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),abs(intStart_old),'nearest');
     %     end
     %     indStart = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intStart,'nearest');
     %     indAdd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),(intStart+sStimParams.intSpacing_pix),'nearest')-indStart-1;
     %
-    % %     %correct baserect length
-    % %     vecBaseRect = vecBaseRect(:,indStart:indEnd);
-    % %     indStart = 1;
+    %     %correct baserect length
+    %     vecBaseRect = vecBaseRect(:,indStart:indEnd);
+    %     indStart = 1;
     %
     %     %create sAllDots
     %     sAllDots = struct;
@@ -547,16 +501,20 @@ elseif intStimSet == 6
     %     %     for intStim = 1:intNumTraj
     %     while 1
     %         sAllDots.stimID(intStimIdx) = intStimIdx;
-    %         sAllDots.vecBoundingRect{intStimIdx} = vecBaseRect(:,indStart:indEnd);
+    %         sAllDots.vecBoundingRect{intStimIdx} = vecBaseRect; %vecBaseRect(:,indStart:end);
     %         sAllDots.vecDirection(intStimIdx) = 0;
-    %         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
+    %         sAllDots.vecColor{intStimIdx} = repmat(255,size(sAllDots.vecBoundingRect{intStimIdx}(1,:))); %repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
     %         sAllDots.vecColor{intStimIdx}(indStart:end) = sStimParams.dblColor;
-    %
+    %         if any(diff(sAllDots.vecColor{intStimIdx}))
+    %             sAllDots.vecReversalFrame(intStimIdx) = find(diff(sAllDots.vecColor{intStimIdx}))+1; %NaN(size(sAllDots.vecBoundingRect));
+    %         else
+    %             sAllDots.vecReversalFrame(intStimIdx) = 1 ;
+    %         end
     %         sAllDots.vecSpeed_deg(intStimIdx) = sStimParams.vecDotSpeeds_deg;
     %         sAllDots.vecSpeed_pix(intStimIdx) = sStimParams.vecDotSpeeds_pix;
     %         intStimIdx = intStimIdx+1;
     %         indStart = indStart + indAdd;
-    %         if vecBaseRect(1,indStart) > (sStimParams.intRespPosX_pix + sStimParams.intSpacing_pix)
+    %         if vecBaseRect(1,indStart) > (sStimParams.intRespPosX_pix) % + sStimParams.intSpacing_pix)
     %             break
     %         else
     %             continue
@@ -565,66 +523,137 @@ elseif intStimSet == 6
     %     end
     %     sAllDots.intStimulusConditions = intStimIdx-1;
     %     sAllDots.vecStimName = repmat({'classic_short'},size(sAllDots.vecBoundingRect));
-    %     sAllDots.vecReversalFrame = NaN(size(sAllDots.vecBoundingRect));
+
+    %option 2 - probably the best to avoid making the exp too long
+    %first, create a 'base trajectory' based on the lowest speed
+    vecBaseRect = [];
+    vecBaseRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf(1):(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
+    vecBaseRect(2,:) = repmat(sStimParams.intRespPosY_pix-sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
+    vecBaseRect(3,:) = vecBaseRect(1,:)+sStimParams.intSize_pix;
+    vecBaseRect(4,:) = repmat(sStimParams.intRespPosY_pix+sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
+
+    %compute some parameters
+    intStart = sStimParams.intRespPosX_pix-(sStimParams.intScreenWidth_pix/2);
+    indEnd = length(vecBaseRect);
+    if intStart < 0; intStart = 0; end
+    indStart = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intStart,'nearest');
+    indAdd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),(intStart+sStimParams.intSpacing_pix),'nearest')-indStart-1;
+
+    %create sAllDots
+    sAllDots = struct;
+    sAllDots.strStimSet = 'dot_diffhist';
+    intStimIdx = 1;
+
+    %for the lowest speed
+    while 1
+        sAllDots.stimID(intStimIdx) = intStimIdx;
+        sAllDots.vecBoundingRect{intStimIdx} = vecBaseRect(:,indStart:indEnd);
+        sAllDots.vecDirection(intStimIdx) = 0;
+        sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
+        sAllDots.vecColor{intStimIdx}(indStart:end) = sStimParams.dblColor;
+
+        sAllDots.vecSpeed_deg(intStimIdx) = sStimParams.vecDotSpeeds_deg(1);
+        sAllDots.vecSpeed_pix(intStimIdx) = sStimParams.vecDotSpeeds_pix(1);
+        intStimIdx = intStimIdx+1;
+        indStart = indStart + indAdd;
+        if vecBaseRect(1,indStart) > sStimParams.intRespPosX_pix %(sStimParams.intRespPosX_pix + sStimParams.intSpacing_pix)
+            break
+        else
+            continue
+        end
+    end
+    
+    intNumSpeeds = numel(sStimParams.vecDotSpeeds_ppf);
+    intNumTraj = intStimIdx-1;
+    cellBoundingRects = sAllDots.vecBoundingRect;
+
+    %for all the other speeds, start at only half those points
+    vecStartInd = 1:1:intNumTraj; %1:2:intNumTraj;
+    for intSpeed = 2:intNumSpeeds
+        for intTraj = 1:intNumTraj
+            thisInd = vecStartInd(intTraj);
+            sAllDots.stimID(intStimIdx) = intStimIdx;
+            vecBoundingRect = [];
+            vecBoundingRect(1,:) = cellBoundingRects{thisInd}(1):sStimParams.vecDotSpeeds_ppf(intSpeed):(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
+            vecBoundingRect(2,:) = repmat(sStimParams.intRespPosY_pix-sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
+            vecBoundingRect(3,:) = vecBoundingRect(1,:)+sStimParams.intSize_pix;
+            vecBoundingRect(4,:) = repmat(sStimParams.intRespPosY_pix+sStimParams.intSize_pix/2,size(vecBoundingRect(1,:)));
+
+            sAllDots.vecBoundingRect{intStimIdx} = vecBoundingRect;
+            sAllDots.vecDirection(intStimIdx) = 0;
+            sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
+            sAllDots.vecColor{intStimIdx}(indStart:end) = sStimParams.dblColor;
+
+            sAllDots.vecSpeed_deg(intStimIdx) = sStimParams.vecDotSpeeds_deg(intSpeed);
+            sAllDots.vecSpeed_pix(intStimIdx) = sStimParams.vecDotSpeeds_pix(intSpeed);
+
+            intStimIdx = intStimIdx+1;
+
+        end
+    end
+
+    sAllDots.intStimulusConditions = intStimIdx-1;
+    sAllDots.vecStimName = repmat({'classic_short'},size(sAllDots.vecBoundingRect));
+    sAllDots.vecReversalFrame = NaN(size(sAllDots.vecBoundingRect));
 
 elseif intStimSet == 7
-%     %% (7) 'dot_disappear' - dots disappearing at different positions along a straight trajectory
-%     %set parameters
-%     sStimParams.intReps = 20;
-%     sStimParams.intSpacing_pix = round(1.5*sStimParams.intSize_pix);%55; %sStimParams.intSize_pix;
-%     sStimParams.vecDotSpeeds_deg = 15;%approx. speed in deg/s
-%     sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
-%     sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
-%     sStimParams.vecDirections = [0]; %#ok<NBRAK> %[0 180] is rightward & 90 is downward motion, for now only 0 and 180 are available (with the exception of 'dot_grid')
-% 
-%     %create base trajectory
-%     vecBaseRect = [];
-%     vecBaseRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
-%     vecBaseRect(2,:) = repmat(sStimParams.intRespPosY_pix-sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
-%     vecBaseRect(3,:) = vecBaseRect(1,:)+sStimParams.intSize_pix;
-%     vecBaseRect(4,:) = repmat(sStimParams.intRespPosY_pix+sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
-% 
-%     %get some parameters
-%     intStart = sStimParams.intRespPosX_pix-(sStimParams.intScreenWidth_pix/3); %was:/2
-%     intEnd = sStimParams.intRespPosX_pix + (sStimParams.intScreenWidth_pix/3);
-%     if intEnd > vecBaseRect(3,end)
-%         intEnd = vecBaseRect(3,end);
-%     end
-%     indStart = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intStart,'nearest');
-%     indEnd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intEnd,'nearest');
-%     indAdd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),(intStart+sStimParams.intSpacing_pix),'nearest')-indStart-1;
-% 
-%     %correct baserect length
-%     vecBaseRect = vecBaseRect(:,1:indEnd);
-%     indStart = 1;
-% 
-%     %create sAllDots
-%     sAllDots = struct;
-%     sAllDots.strStimSet = 'dot_disappear';
-%     intStimIdx = 1;
-%     %     for intStim = 1:intNumTraj
-%     while 1
-%         sAllDots.stimID(intStimIdx) = intStimIdx;
-%         sAllDots.vecBoundingRect{intStimIdx} = vecBaseRect; %vecBaseRect(:,indStart:end);
-%         sAllDots.vecDirection(intStimIdx) = 0;
-%         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:))); %repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
-%         sAllDots.vecColor{intStimIdx}(indStart:end) = 255; %sStimParams.intBackground;
-%         if any(diff(sAllDots.vecColor{intStimIdx}))
-%             sAllDots.vecReversalFrame(intStimIdx) = find(diff(sAllDots.vecColor{intStimIdx}))+1; %NaN(size(sAllDots.vecBoundingRect));
-%         else
-%             sAllDots.vecReversalFrame(intStimIdx) = 1 ;
-%         end
-%         sAllDots.vecSpeed_deg(intStimIdx) = sStimParams.vecDotSpeeds_deg;
-%         sAllDots.vecSpeed_pix(intStimIdx) = sStimParams.vecDotSpeeds_pix;
-%         intStimIdx = intStimIdx+1;
-%         indStart = indStart + indAdd;
-%         if vecBaseRect(1,indStart) > (sStimParams.intRespPosX_pix)% + sStimParams.intSpacing_pix)
-%             break
-%         else
-%             continue
-%         end
-% 
-%     end
-%     sAllDots.intStimulusConditions = intStimIdx-1;
-%     sAllDots.vecStimName = repmat({'classic_short'},size(sAllDots.vecBoundingRect));
+    %     %% (7) 'dot_disappear' - dots disappearing at different positions along a straight trajectory
+    %     %set parameters
+    %     sStimParams.intReps = 20;
+    %     sStimParams.intSpacing_pix = round(1.5*sStimParams.intSize_pix);%55; %sStimParams.intSize_pix;
+    %     sStimParams.vecDotSpeeds_deg = 15;%approx. speed in deg/s
+    %     sStimParams.vecDotSpeeds_pix = sStimParams.vecDotSpeeds_deg*sStimParams.dblPixelsPerDeg; %pixels/s
+    %     sStimParams.vecDotSpeeds_ppf = round(sStimParams.vecDotSpeeds_pix/sStimParams.intStimFrameRate);
+    %     sStimParams.vecDirections = [0]; %#ok<NBRAK> %[0 180] is rightward & 90 is downward motion, for now only 0 and 180 are available (with the exception of 'dot_grid')
+    %
+    %     %create base trajectory
+    %     vecBaseRect = [];
+    %     vecBaseRect(1,:) = (0-sStimParams.intSize_pix):sStimParams.vecDotSpeeds_ppf:(sStimParams.intScreenWidth_pix+sStimParams.vecDotSpeeds_ppf);
+    %     vecBaseRect(2,:) = repmat(sStimParams.intRespPosY_pix-sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
+    %     vecBaseRect(3,:) = vecBaseRect(1,:)+sStimParams.intSize_pix;
+    %     vecBaseRect(4,:) = repmat(sStimParams.intRespPosY_pix+sStimParams.intSize_pix/2,size(vecBaseRect(1,:)));
+    %
+    %     %get some parameters
+    %     intStart = sStimParams.intRespPosX_pix-(sStimParams.intScreenWidth_pix/3); %was:/2
+    %     intEnd = sStimParams.intRespPosX_pix + (sStimParams.intScreenWidth_pix/3);
+    %     if intEnd > vecBaseRect(3,end)
+    %         intEnd = vecBaseRect(3,end);
+    %     end
+    %     indStart = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intStart,'nearest');
+    %     indEnd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),intEnd,'nearest');
+    %     indAdd = interp1(vecBaseRect(3,:),1:length(vecBaseRect(3,:)),(intStart+sStimParams.intSpacing_pix),'nearest')-indStart-1;
+    %
+    %     %correct baserect length
+    %     vecBaseRect = vecBaseRect(:,1:indEnd);
+    %     indStart = 1;
+    %
+    %     %create sAllDots
+    %     sAllDots = struct;
+    %     sAllDots.strStimSet = 'dot_disappear';
+    %     intStimIdx = 1;
+    %     %     for intStim = 1:intNumTraj
+    %     while 1
+    %         sAllDots.stimID(intStimIdx) = intStimIdx;
+    %         sAllDots.vecBoundingRect{intStimIdx} = vecBaseRect; %vecBaseRect(:,indStart:end);
+    %         sAllDots.vecDirection(intStimIdx) = 0;
+    %         sAllDots.vecColor{intStimIdx} = repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:))); %repmat(sStimParams.dblColor,size(sAllDots.vecBoundingRect{intStimIdx}(1,:)));
+    %         sAllDots.vecColor{intStimIdx}(indStart:end) = 255; %sStimParams.intBackground;
+    %         if any(diff(sAllDots.vecColor{intStimIdx}))
+    %             sAllDots.vecReversalFrame(intStimIdx) = find(diff(sAllDots.vecColor{intStimIdx}))+1; %NaN(size(sAllDots.vecBoundingRect));
+    %         else
+    %             sAllDots.vecReversalFrame(intStimIdx) = 1 ;
+    %         end
+    %         sAllDots.vecSpeed_deg(intStimIdx) = sStimParams.vecDotSpeeds_deg;
+    %         sAllDots.vecSpeed_pix(intStimIdx) = sStimParams.vecDotSpeeds_pix;
+    %         intStimIdx = intStimIdx+1;
+    %         indStart = indStart + indAdd;
+    %         if vecBaseRect(1,indStart) > (sStimParams.intRespPosX_pix)% + sStimParams.intSpacing_pix)
+    %             break
+    %         else
+    %             continue
+    %         end
+    %
+    %     end
+    %     sAllDots.intStimulusConditions = intStimIdx-1;
+    %     sAllDots.vecStimName = repmat({'classic_short'},size(sAllDots.vecBoundingRect));
 end

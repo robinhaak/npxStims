@@ -227,15 +227,17 @@ ylabel('\Deltat (s)');
 %     ylim([-2 2]);
 
 end
+
 %% Subplots_dot_diffhist
 function subplots_dot_diffhist( measures, record, sParams) 
 
 intNumStimuli = length(measures.vecPeakTime);
 sParams.clrScheme = parula(intNumStimuli);
 
-
 figure('Name',['Dot diffhist ' num2str(measures.intIndex)],'NumberTitle','off');
+hold on
 %indResponsive = (measures.vecZetaP < min(0.05,1/length(measures.vecZetaP)));
+sgtitle(measures.Area)
 
 sMeasuresDotSpeeds = get_related_measures( record, 'stimulus=dot_speeds', [], measures.intIndex );
 if isempty(sMeasuresDotSpeeds)
@@ -249,7 +251,7 @@ if isempty(sMeasuresFlashingDots)
 end
 
 
-subplot(3,2,3); % CorCumSpikes
+subplot(2,2,[1 2]); % CorCumSpikes
 hold on
 for ind = find(measures.vecResponsive) %1:length(record.sStimuli.vecStimStartX_pix)
     if isempty(measures.cellSpikeTimes{ind})
@@ -267,7 +269,7 @@ plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlas
 plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
 
 
-subplot(3,2,4) % Start vs Onset position
+subplot(2,2,3) % Start vs Onset position
 hold on
 vecStimPosAtResponseOnset_pix = record.sStimuli.vecStimStartX_pix + measures.vecOnsetTime.*record.sStimuli.vecSpeed_pix;
 scatter(record.sStimuli.vecStimStartX_pix(measures.vecResponsive),...
@@ -290,6 +292,31 @@ axis square
 xyline
 xlabel('Stim position at start (pix)');
 ylabel('Stim position at onset (pix)');
+
+subplot(2,2,4) % Start vs Peak position
+hold on
+vecStimPosAtResponsePeak_pix = record.sStimuli.vecStimStartX_pix + measures.vecPeakTime.*record.sStimuli.vecSpeed_pix;
+scatter(record.sStimuli.vecStimStartX_pix(measures.vecResponsive),...
+    vecStimPosAtResponsePeak_pix(measures.vecResponsive),20,...
+    sParams.clrScheme(measures.vecResponsive,:),'filled');
+xlim([-1200 1200])
+ylim([-1200 1200])
+plot(sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],ylim,'--','Color',sParams.clrLeft);
+plot(xlim,sMeasuresDotSpeeds.dblXRFLeftFromOnset_pix*[1 1],'--','Color',sParams.clrLeft);
+plot(sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
+plot(xlim,sMeasuresFlashingDots.dblXRFLeft_pix*[1 1],'-','Color',sParams.clrFlashing);
+%plot(sMeasuresFlashingDots.dblXRFRight_pix*[1 1],ylim,'-','Color',sParams.clrFlashing);
+plot(measures.lmBefore_Peak);
+legend off
+dblLow = min([record.sStimuli.vecStimStartX_pix(measures.vecResponsive) vecStimPosAtResponsePeak_pix(measures.vecResponsive)]);
+dblHigh = max([record.sStimuli.vecStimStartX_pix(measures.vecResponsive) vecStimPosAtResponsePeak_pix(measures.vecResponsive)]);
+xlim([dblLow dblHigh]);
+ylim([dblLow dblHigh]);
+axis square
+xyline
+xlabel('Stim position at start (pix)');
+ylabel('Stim position at peak (pix)');
+
 
 
 end

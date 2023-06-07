@@ -8,7 +8,7 @@ function sParams = RH_defaultParameters( )
 sParams.strOutputPath = 'C:\Users\haak\Desktop';
 
 sParams.separationFromPrevStimOff = 0.1; % s, time to stay clear of off-response for calculation of spontaneous rate
-sParams.dblBinWidth = 0.01; % Binwidth for PSTH for peak rate calculation
+sParams.dblBinWidth = 0.01; % s, binwidth for PSTH for peak rate calculation
 
 sParams.boolSmooth = false;
 sParams.boolOnlyUseMiddleRangeSpeeds = true;
@@ -16,6 +16,7 @@ sParams.boolUseResponseOnset = true;
 sParams.boolFitGaussian = false; % compute peak and onset times based on Gaussian fit
 sParams.dblThresholdResponsiveZetaP = 0.01;
 sParams.dblOnsetResponseThreshold = 0.5;
+sParams.boolTakeLeadingEdge = true;
 
 % Results
 sParams.clrLeft = [1 0 0];
