@@ -1,0 +1,13 @@
+- RH_FLASHINGDOT_CURSOR - not needed, doesn't interact with spikeGLX
+
+edited:
+- RH_OneDotTwoDots
+- RH_MovingDots
+- RH_GratingPatches
+- RH_GratingPatchesBig
+
+still to be done:
+- RH_runLocomotionFeedback
+- RH_runAsyncStim
+- RH_OptoStim
+- RH_GratingsOpto

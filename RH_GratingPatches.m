@@ -2,7 +2,9 @@
 %GRATINGSPATCHES
 %show patches of (drifting) gratings at different locations on the screen the screen
 %
-%Robin Haak, updated 15 March 2023
+%Robin Haak, created ???
+% 28 Feb 2025
+%   - changed to work with new spikeGLX version
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -18,7 +20,7 @@ boolDebug = false;
 %defaults
 dblPupilLightMultiplier = 1; %strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
-strHostAddress = '192.87.11.133'; %default host address
+strHostAddress = '192.87.11.8'; %'192.87.11.133'; %default host address
 objDaqOut = [];
 
 if exist('sExpMeta','var')
@@ -47,7 +49,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings = struct;
     sStimParamsSettings.strStimType = 'GratingPatches';
     sStimParamsSettings.strOutputPath = 'C:\_Data\Exp'; %appends date
-    sStimParamsSettings.strTempObjectPath = 'X:\JorritMontijn\';%X:\JorritMontijn\ or F:\Data\Temp\
+    sStimParamsSettings.strTempObjectPath = 'C:\temp';%X:\JorritMontijn\ or F:\Data\Temp\
 
     %visual space parameters
     % 	sStimParamsSettings.dblSubjectPosX_cm = 0; % cm; relative to center of screen
@@ -129,8 +131,9 @@ if boolUseSGL
     fprintf('SGL saving to "%s", matlab saving to "%s.mat" [%s]...\n',strRunName,strFilename,getTime);
 
     %retrieve some parameters
-    intStreamNI = -1;
-    dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+    intStreamNI = 0; %-1;
+%     dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+    dblSampFreqNI = GetStreamSampleRate(hSGL, intStreamNI, strHostAddress);
 
     %% check disk space available
     strDataDirSGL = GetDataDir(hSGL);
@@ -470,7 +473,8 @@ try
 
                 %log NI timestamp
                 if boolUseSGL
-                    dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+%                     dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+					dblStimOnNI = GetStreamSampleCount(hSGL, intStreamNI, strHostAddress)/dblSampFreqNI;
                 else
                     dblStimOnNI = nan;
                 end
@@ -487,7 +491,8 @@ try
 
         %log NI timestamp
         if boolUseSGL
-            dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+% 			dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+            dblStimOffNI =  GetStreamSampleCount(hSGL, intStreamNI, strHostAddress)/dblSampFreqNI;
         else
             dblStimOffNI = nan;
         end
@@ -596,7 +601,7 @@ catch ME
         %% close Daq IO
         if boolUseNI && ~(exist('sExpMeta','var') && isfield(sExpMeta,'objDaqOut'))
             try
-                closeDaqOutput(objDaqOut);ds
+                closeDaqOutput(objDaqOut);
             catch
             end
         end

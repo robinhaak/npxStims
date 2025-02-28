@@ -1,7 +1,10 @@
 %RH_MOVINGDOTS
 %Show different sets of dots moving across the screen
 %
-%Robin Haak, last updated on 5 June 2023
+%Robin Haak
+% 28 Feb 2025
+%   - changed to work with new spikeGLX version
+
 
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
@@ -10,8 +13,8 @@ clear; close all; Screen('CloseAll');
 
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = false; %true;
-boolUseNI = false; %true;
+boolUseSGL = true; %true;
+boolUseNI = true; %true;
 boolDebug = false;
 
 %defaults
@@ -149,8 +152,9 @@ if boolUseSGL
     fprintf('SGL saving to "%s", matlab saving to "%s.mat" [%s]...\n',strRunName,strFilename,getTime);
 
     %retrieve some parameters
-    intStreamNI = -1;
-    dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+    intStreamNI = 0; %-1;
+%     dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+    dblSampFreqNI = GetStreamSampleRate(hSGL, intStreamNI, strHostAddress);
 
     %% check disk space available
     strDataDirSGL = GetDataDir(hSGL);
@@ -266,14 +270,26 @@ try
     structEP = struct;
     structEP.strExpType = sStimParams.strStimType;
     structEP.strStimSet = sAllDots.strStimSet;
-    structEP.intTrialNum = length(vecStimID)*sStimParams.intReps;
-    structEP.TrialNum = nan(1,structEP.intTrialNum);
-    structEP.dblStimFrameDur = dblStimFrameDur;
-    structEP.dblInterFlipInterval = dblInterFlipInterval;
+%     structEP.intTrialNum = length(vecStimID)*sStimParams.intReps;
+%     structEP.TrialNum = nan(1,structEP.intTrialNum);
+structEP.dblStimFrameDur = dblStimFrameDur;
+structEP.dblInterFlipInterval = dblInterFlipInterval;
 
+if isscalar(sStimParams.intReps)
     structEP.vecStimID = [];
     for intRep = 1:sStimParams.intReps, structEP.vecStimID = [structEP.vecStimID vecStimID(randperm(length(vecStimID)))];end
-%     
+
+else
+    structEP.vecStimID = [];
+    vecReps = sAllDots.intReps;
+    for indStim = 1:numel(vecStimID)
+        structEP.vecStimID = [structEP.vecStimID  repmat(vecStimID(indStim),[1 vecReps(indStim)])];
+    end
+    structEP.vecStimID = structEP.vecStimID(randperm(length(structEP.vecStimID)));
+end
+structEP.intTrialNum = length(  structEP.vecStimID);
+structEP.TrialNum = nan(1,structEP.intTrialNum);
+
 %     %make sure there are no repeating trials
 %     while sum(diff(structEP.vecStimID)==0) > 0
 %         vecRepeatInd = find(diff(structEP.vecStimID)==0);
@@ -435,7 +451,8 @@ try
                 boolFirstFlip = true;
                 %log NI timestamp
                 if boolUseSGL
-                    dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+                    %                     dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+                    dblStimOnNI = GetStreamSampleCount(hSGL, intStreamNI, strHostAddress)/dblSampFreqNI;
                 else
                     dblStimOnNI = nan;
                 end
@@ -462,13 +479,13 @@ try
         dblLastFlip = Screen('Flip', ptrWindow, dblLastFlip+dblStimFrameDur/2);
 
         %log NI timestamp
-        if ~boolReversalTrial
-            if boolUseSGL
-                dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
-            else
-                dblStimOffNI = nan;
-            end
+        if boolUseSGL
+            % 			dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+            dblStimOffNI =  GetStreamSampleCount(hSGL, intStreamNI, strHostAddress)/dblSampFreqNI;
+        else
+            dblStimOffNI = nan;
         end
+        
         %get stim duration
         if~boolReversalTrial
             dblStimOffFlip = dblLastFlip;

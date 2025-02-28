@@ -1,8 +1,8 @@
-
+edit
 %RH_FLASHINGDOT_CURSOR
 %Robin Haak, last update 7 November 2022
 
-clear; close all; Screen('CloseAll');
+% clear; close all; Screen('CloseAll');
 fprintf('Starting %s [%s]\n',mfilename,getTime);
 
 %% set debug switch
@@ -15,15 +15,15 @@ sStimParams = struct;
 sStimParams.intUseScreen = 2; %which screen to use
 sStimParams.dblBackground = 0.5; %background color (dbl, [0 1]); 0 = black, 1 = white
 sStimParams.intBackground = round(mean(sStimParams.dblBackground)*255);
-sStimParams.intCornerTrigger = 2;
+sStimParams.intCornerTrigger = 1; % 1; %2;
 sStimParams.dblCornerSize = 1/30; % fraction of screen width
 
 %stimulus parameters
-sStimParams.dblFlashRate = 1; %Hz; initial flash rate
+sStimParams.dblFlashRate = 2; %Hz; initial flash rate
 sStimParams.dblSize = 100; %pix; initial stimulus size
 sStimParams.dblStimulus = 0; %stimulus color (dbl, [0 1])
 sStimParams.intStimulus = round(mean(sStimParams.dblStimulus)*255);
-sStimParams.dblStimulusAlternate = 0.5; %stimulus color (dbl, [0 1])
+sStimParams.dblStimulusAlternate = 1; % 0.5; %stimulus color (dbl, [0 1])
 sStimParams.intStimulusAlternate = round(mean(sStimParams.dblStimulusAlternate)*255);
 
 if boolDebug == true
