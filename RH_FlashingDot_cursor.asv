@@ -21,7 +21,7 @@ prompt = {
     };
 dlgtitle = 'Set Flashing Dot Parameters';
 dims = [1 60];
-definput = {'2', '0.5', '1', '2', '100', '1'};
+definput = {'1', '0.5', '1', '2', '100', '1'};
 answer = inputdlg(prompt, dlgtitle, dims, definput);
 
 if isempty(answer)

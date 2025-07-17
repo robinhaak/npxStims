@@ -17,8 +17,8 @@ clear; close all; Screen('CloseAll');
 %% define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
 
-boolUseSGL = true; %true;
-boolUseNI = true; %true;
+boolUseSGL = false; %true;
+boolUseNI = false; %true;
 boolDebug = false;
 
 %defaults
@@ -84,7 +84,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     %BASICALLY THE ONLY SETTING TO MESS WITH ON A DAILY BASIS
     sStimParamsSettings.intStimulusRepeats = 7; %10; %7; %per location (irrespective of direction or phase)
 
-    sStimParamsSettings.vecDirections = 90; %[0 180]; %[0 90 180 270]; %drifting directions (only [0 90 180 270], otherwise it gets funky)
+    sStimParamsSettings.vecDirections = [0 90 180 270]; %drifting directions (only [0 90 180 270], otherwise it gets funky)
     sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is downward motion';
     %*for size= 9deg & tf= 3Hz, spf= ~0.11c/deg, speed= 27deg/s
 
