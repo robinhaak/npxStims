@@ -260,7 +260,7 @@ try
     fprintf('Pre-generating grating textures for %d directions... ', numDirections);
     for intDir = 1:numDirections
         direction = sStimParams.vecDirections(intDir);
-        theta_rad = deg2rad(mod(180-direction,360)); % Convert drift direction to radians
+        theta_rad = deg2rad(direction); % Convert drift direction to radians
         
         % Grating lines are perpendicular to drift direction.
         % So, if drift direction is 'theta_rad', grating lines are at 'theta_rad + pi/2'.
@@ -421,6 +421,7 @@ try
         
         % Get the actual drift direction for this trial
         currentDriftDirection = sStimParams.vecDirections(vecDirectionIdx(intThisTrial));
+        currentDriftDirection = mod(180-currentDriftDirection,)
         
         % Get the pre-generated texture for this direction and phase
         intGratingTex = texCollection{vecDirectionIdx(intThisTrial), vecPhaseIdx(intThisTrial)};
@@ -455,7 +456,7 @@ try
         refTime = tic;
         boolFirstFlip = false;
         intFrame = 1;
-        currentDriftDirection = mod(180-currentDriftDirection,360);
+        
         while toc(refTime)<(sStimParams.dblSecsDuration-2*dblStimFrameDur)
             % The drift velocity in pixels per second
             % This is the magnitude of the velocity vector
