@@ -59,6 +59,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblDotSpeed_degPerSec = 10; % Dot speed, deg/s
     sStimParamsSettings.dblCoveragePercent = 0.12; % Screen coverage by dots
     sStimParamsSettings.dblDotLifetime_s = 1; % Dot lifetime in seconds
+    sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is upward motion';
 
     % Stimulus set selection
     tuningSetLabel = 'Tuning Set (8 directions, high coherence)';
@@ -90,7 +91,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblSecsEndBlank = 5;
 
     % Control variables (common)
-    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 4; % Repetitions for each unique stimulus
+    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 20; % Repetitions for each unique stimulus
     sStimParamsSettings.intNumRNGSeeds = 4; % Number of RNG seeds to use
     sStimParamsSettings.intUseDaqDevice = 1; % ID of DAQ device
     sStimParamsSettings.intUseParPool = 0; % Number of workers in parallel pool; [2]
