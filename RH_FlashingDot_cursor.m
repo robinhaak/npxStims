@@ -17,11 +17,13 @@ prompt = {
     ['Color mode:' newline ...
     '1 = Alternating black/white' newline ...
     '2 = Flashing black' newline ...
-    '3 = Flashing white']
-    };
+    '3 = Flashing white'], ...
+    'Dot expansion speed:'
+};
 dlgtitle = 'Set Flashing Dot Parameters';
 dims = [1 60];
-definput = {'2', '0.5', '1', '2', '100', '1'};
+definput = {'2', '0.5', '2', '2', '100', '1', '2'};
+
 answer = inputdlg(prompt, dlgtitle, dims, definput);
 
 if isempty(answer)
@@ -36,6 +38,7 @@ sStimParams.intCornerTrigger = str2double(answer{3});
 sStimParams.dblFlashRate = str2double(answer{4});
 sStimParams.dblSize = str2double(answer{5});
 colorMode = str2double(answer{6});
+sStimParams.dblExpansionSpeed = str2double(answer{7});
 
 %validate inputs
 if isnan(sStimParams.intUseScreen)
@@ -47,8 +50,8 @@ end
 if isnan(sStimParams.intCornerTrigger) || ~ismember(sStimParams.intCornerTrigger, 1:4)
     error('Corner trigger must be 1, 2, 3, or 4.');
 end
-if isnan(sStimParams.dblFlashRate) || sStimParams.dblFlashRate <= 0
-    error('Flash rate must be positive.');
+if isnan(sStimParams.dblFlashRate) || sStimParams.dblFlashRate < 0
+    error('Flash rate must be >= 0.');
 end
 if isnan(sStimParams.dblSize) || sStimParams.dblSize <= 0
     error('Initial dot size must be positive.');
@@ -69,6 +72,10 @@ switch colorMode
     case 3  % flashing white
         sStimParams.dblStimulus = 1;                         % white
         sStimParams.dblStimulusAlternate = sStimParams.dblBackground; % background
+end
+
+if isnan(sStimParams.dblExpansionSpeed) || sStimParams.dblExpansionSpeed <= 0
+    error('Expansion speed must be a positive number.');
 end
 
 sStimParams.intStimulus = round(sStimParams.dblStimulus * 255);
@@ -176,11 +183,11 @@ try
 
         %change stimulus size based on ui
         if vecButtons(1) == 1
-            dblSize = dblSize - 1;
-            if dblSize < 0, dblSize = 0; end %min
+            dblSize = dblSize - sStimParams.dblExpansionSpeed;
+            if dblSize < 0, dblSize = 0; end
         elseif vecButtons(3) == 1
-            dblSize = dblSize + 1;
-            if dblSize > sStimParams.intScreenWidth_pix, dblSize = sStimParams.intScreenWidth_pix; end %max
+            dblSize = dblSize + sStimParams.dblExpansionSpeed;
+            if dblSize > sStimParams.intScreenWidth_pix, dblSize = sStimParams.intScreenWidth_pix; end
         end
 
         %set color
@@ -200,7 +207,7 @@ try
             Screen('FillRect',ptrWindow,sStimParams.intWhite,vecDiodeRect); %diode
         end
         dblLastFlip = Screen('Flip', ptrWindow, dblLastFlip+0.5/intStimFrameRate);
-        fprintf('Position: %d (x), %d (y); Size: %d\n',dblPosX,dblPosY,dblSize);
+        % fprintf('Position: %d (x), %d (y); Size: %d\n',dblPosX,dblPosY,dblSize);
     end
 
     %close
