@@ -60,27 +60,14 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblCoveragePercent = 0.12; % Screen coverage by dots
     sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is upward motion';
 
-    % Stimulus set selection (more robust version)
+    % Stimulus set selection
     tuningSetLabel = 'Tuning Set (8 directions, high coherence)';
     coherenceSetLabel = 'Coherence Set (4 directions, 5 coherence levels)';
     lifetimeSetLabel = 'Lifetime Set (4 directions, 1 coherence level, 5 lifetime levels)';
 
-    stimLabels = {tuningSetLabel, coherenceSetLabel, lifetimeSetLabel};
-
-    % Show list dialog with these options
-    [intSelection, tfOK] = listdlg( ...
-        'PromptString', 'Choose a Stimulus Set:', ...
-        'SelectionMode', 'single', ...
-        'ListString', stimLabels, ...
-        'ListSize', [350 150]);
-
-    if ~tfOK
-        fprintf('No stimulus set selected. Exiting script.\n');
-        return; % User canceled, exit gracefully
-    end
-
-    choice = stimLabels{intSelection};
-
+    choice = questdlg('Choose a Stimulus Set:', ...
+        'Stimulus Configuration', ...
+        tuningSetLabel, coherenceSetLabel, tuningSetLabel,lifetimeSetLabel); % 'Tuning Set' is default
     switch choice
         case tuningSetLabel
             sStimParamsSettings.vecDirections_deg = 0:45:315; % All 8 directions
@@ -98,10 +85,10 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
             sStimParamsSettings.vecDotLifetime_s = linspace(0.1,1,5); % Dot lifetime in seconds
             fprintf('Selected: LifeTime Set (4 directions, 1 coherence, 5 lifetimes)\n');
         otherwise
-            fprintf('Unexpected selection. Exiting.\n');
-            return;
+            % User closed dialog or clicked cancel
+            fprintf('No stimulus set selected. Exiting script.\n');
+            return; % Exit the script
     end
-
 
     % General timing parameters (common), seconds
     sStimParamsSettings.dblSecsDuration = 2; %
@@ -356,7 +343,7 @@ try
 
         dotLifetimeFrames = round(lifetimeSeconds / dblStimFrameDur);
 
-        key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dirDeg, lifetimeSeconds,seedIdx);
+        key = sprintf('coh_%.2f_dir_%.0f_seed_%d_life_%.2f', coh, dirDeg, seedIdx, lifetimeSeconds);
         rng(initialRNGstates{seedIdx}); % Reset RNG to the stored state for this specific seed
         dirRad = deg2rad(dirDeg);
         posX = rand(1, numDots) * sStimParams.intScreenWidth_pix;
@@ -407,7 +394,8 @@ try
         precomputedDotsCache(key) = currentFrameData; % Store in cache
     end
     intTotalTrials = size(trialList, 1); % Total number of trials to run
-    fprintf('Estimated total stimulus time: %.1f minutes\n', intTotalTrials * (sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank + sStimParams.dblSecsPreBlank) / 60);
+    fprintf('Estimated total stimulus time: %.1f minutes\n', intTotalTrials * (sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank + sStimParams.dblSecsPre
+
     %% Build structEP
     % Stimulus timing info
     initialBlank = sStimParams.dblSecsInitialBlank;
@@ -430,7 +418,7 @@ try
     structEP.dblDotSpeed_degPerSec = repmat(sStimParams.dblDotSpeed_degPerSec, [1 structEP.intTrialNum]);
     structEP.dblCoveragePercent = repmat(sStimParams.dblCoveragePercent, [1 structEP.intTrialNum]);
     % structEP.dblDotLifetime_s = repmat(sStimParams.dblDotLifetime_s, [1 structEP.intTrialNum]);
-    structEP.dblDotLifetime_s =nan(1,structEP.intTrialNum);
+    structEP.dblDotLifetime_s = repmat(sStimParams.dblDotLifetime_s, [1 structEP.intTrialNum]);
     structEP.intNumDots = repmat(numDots, [1 structEP.intTrialNum]); % Store actual number of dots
     % Removed: structEP.strDotLocationsFilePath = cell(1,structEP.intTrialNum); % New field to store path to saved dot locations
     structEP.stimObjects = cell(1, structEP.intTrialNum); % **NEW FIELD** to store precomputed dot locations
@@ -527,9 +515,8 @@ try
         % Get RDK parameters for this trial
         coh = trialList(intThisTrial,1);
         dir = trialList(intThisTrial,2);
-        life = trialList(intThisTrial,3);
-        seed = trialList(intThisTrial,4);
-        key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dir, life, seed);
+        seed = trialList(intThisTrial,3);
+        key = sprintf('coh_%.2f_dir_%.0f_seed_%d', coh, dir, seed);
 
         % Retrieve precomputed frames from cache & store
         frames = precomputedDotsCache(key);
@@ -537,7 +524,6 @@ try
 
         % Populate structEP for this trial
         structEP.dblCoherence(intThisTrial) = coh;
-        structEP.dblDotLifetime_s = life;
         structEP.dblDirection_deg(intThisTrial) = dir;
         structEP.intRNGSeed(intThisTrial) = seed;
         structEP.vecDstRect(:,intThisTrial) = [0; 0; sStimParams.intScreenWidth_pix; sStimParams.intScreenHeight_pix]; % RDK is full screen
@@ -549,8 +535,8 @@ try
         expectedStimOffSecs = structEP.vecTrialStimOffSecs(intThisTrial);
         expectedEndSecs = structEP.vecTrialEndSecs(intThisTrial); % This is the end of the *trial block*
         % Display in command window
-        fprintf('%d/%d: Coherence=%.2f, Direction=%.0f deg, Lifetime=%.2f s Seed=%d [%s]\n', ...
-            intThisTrial, intTotalTrials, coh, dir, life, seed, getTime);
+        fprintf('%d/%d: Coherence=%.2f, Direction=%.0f deg, Seed=%d [%s]\n', ...
+            intThisTrial, intTotalTrials, coh, dir, seed, getTime);
 
         %% Wait pre-blanking
         % Target time for pre-blank to end is (expectedStimOnSecs - dblInitialFlip)
