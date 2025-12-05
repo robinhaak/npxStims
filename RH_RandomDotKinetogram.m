@@ -62,7 +62,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
 
     % Stimulus set selection (more robust version)
     tuningSetLabel = 'Tuning Set (8 directions, high coherence)';
-    coherenceSetLabel = 'Coherence Set (4 directions, 5 coherence levels)';
+    coherenceSetLabel = 'Coherence Set (4 directions, 5 coherence levels, 1 lifetime level )';
     lifetimeSetLabel = 'Lifetime Set (4 directions, 1 coherence level, 5 lifetime levels)';
 
     stimLabels = {tuningSetLabel, coherenceSetLabel, lifetimeSetLabel};
@@ -91,7 +91,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
             sStimParamsSettings.vecDirections_deg = 45:45:180; % Four directions
             sStimParamsSettings.vecCoherenceLevels = [0.06 0.12 0.24 0.48 0.96];
             sStimParamsSettings.vecDotLifetime_s = 1; % Dot lifetime in seconds
-            fprintf('Selected: Coherence Set (4 directions, 5 coherences)\n');
+            fprintf('Selected: Coherence Set (4 directions, 5 coherences, 1 lifetime)\n');
         case lifetimeSetLabel
             sStimParamsSettings.vecDirections_deg = 45:45:180; % Four directions
             sStimParamsSettings.vecCoherenceLevels = 0.48;
@@ -111,8 +111,8 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblSecsEndBlank = 5;
 
     % Control variables (common)
-    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 20; % Repetitions for each unique stimulus
-    sStimParamsSettings.intNumRNGSeeds = 4; % Number of RNG seeds to use
+    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 25; % Repetitions for each unique stimulus
+    sStimParamsSettings.intNumRNGSeeds = 5; % Number of RNG seeds to use
     sStimParamsSettings.intUseDaqDevice = 1; % ID of DAQ device
     sStimParamsSettings.intUseParPool = 0; % Number of workers in parallel pool; [2]
     sStimParamsSettings.intUseGPU = 0; % Set to 1 if you have a GPU and Psychtoolbox supports it (for MakeTexture etc)
@@ -423,14 +423,14 @@ try
     structEP.dblStimFrameDur = dblStimFrameDur;
     structEP.dblInterFlipInterval = dblInterFlipInterval;
     % RDK Specific Fields
-    structEP.dblCoherence = nan(1,structEP.intTrialNum);
-    structEP.dblDirection_deg = nan(1,structEP.intTrialNum);
+    structEP.vecCoherence = nan(1,structEP.intTrialNum);
+    structEP.vecDirection_deg = nan(1,structEP.intTrialNum);
     structEP.intRNGSeed = nan(1,structEP.intTrialNum);
-    structEP.dblDotSize_deg = repmat(sStimParams.dblDotSize_deg, [1 structEP.intTrialNum]);
-    structEP.dblDotSpeed_degPerSec = repmat(sStimParams.dblDotSpeed_degPerSec, [1 structEP.intTrialNum]);
-    structEP.dblCoveragePercent = repmat(sStimParams.dblCoveragePercent, [1 structEP.intTrialNum]);
+    structEP.vecDotSize_deg = repmat(sStimParams.dblDotSize_deg, [1 structEP.intTrialNum]);
+    structEP.vecDotSpeed_degPerSec = repmat(sStimParams.dblDotSpeed_degPerSec, [1 structEP.intTrialNum]);
+    structEP.vecCoveragePercent = repmat(sStimParams.dblCoveragePercent, [1 structEP.intTrialNum]);
     % structEP.dblDotLifetime_s = repmat(sStimParams.dblDotLifetime_s, [1 structEP.intTrialNum]);
-    structEP.dblDotLifetime_s =nan(1,structEP.intTrialNum);
+    structEP.vecDotLifetime_s =nan(1,structEP.intTrialNum);
     structEP.intNumDots = repmat(numDots, [1 structEP.intTrialNum]); % Store actual number of dots
     % Removed: structEP.strDotLocationsFilePath = cell(1,structEP.intTrialNum); % New field to store path to saved dot locations
     structEP.stimObjects = cell(1, structEP.intTrialNum); % **NEW FIELD** to store precomputed dot locations
@@ -446,7 +446,7 @@ try
     structEP.vecDirection = nan(1,structEP.intTrialNum); % Will store RDK direction
     structEP.vecTexture = nan(1,structEP.intTrialNum); % Not applicable for RDK
     % Pre-calculated expected timings
-    structEP.vecTrialStartSecs = initialBlank:trialDur:(totalLength-endBlank-eps); % Use eps to avoid floating point issues
+    structEP.vecTrialStartSecs = initialBlank:trialDur:(totalLength-endBlank-trialDur-eps); % Use eps to avoid floating point issues
     structEP.vecTrialStimOnSecs = structEP.vecTrialStartSecs + sStimParams.dblSecsPreBlank;
     structEP.vecTrialStimOffSecs = structEP.vecTrialStimOnSecs + sStimParams.dblSecsDuration;
     structEP.vecTrialEndSecs = structEP.vecTrialStimOffSecs + sStimParams.dblSecsPostBlank;
@@ -536,9 +536,9 @@ try
         structEP.stimObjects{intThisTrial} = frames;
 
         % Populate structEP for this trial
-        structEP.dblCoherence(intThisTrial) = coh;
-        structEP.dblDotLifetime_s = life;
-        structEP.dblDirection_deg(intThisTrial) = dir;
+        structEP.vecCoherence(intThisTrial) = coh;
+        structEP.vecDotLifetime_s(intThisTrial) = life;
+        structEP.vecDirection_deg(intThisTrial) = dir;
         structEP.intRNGSeed(intThisTrial) = seed;
         structEP.vecDstRect(:,intThisTrial) = [0; 0; sStimParams.intScreenWidth_pix; sStimParams.intScreenHeight_pix]; % RDK is full screen
         structEP.vecDirection(intThisTrial) = dir; % Store the main direction
