@@ -54,8 +54,8 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ...
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
    
     %stimulus parameters
-    sStimParamsSettings.dblSpatialFrequency_cd = 0.04; % cycles/deg default
-    sStimParamsSettings.dblTemporalFrequency = 1; % Hz default
+    sStimParamsSettings.dblSpatialFrequency_cd = 0.06; % cycles/deg default
+    sStimParamsSettings.dblTemporalFrequency = 1; % Hz default, gives 25? deg/s
     sStimParamsSettings.dblSecsDuration = 2; % seconds per stimulus
     sStimParamsSettings.dblSecsInitialBlank = 5;
     sStimParamsSettings.dblSecsPreBlank = 0.35;
