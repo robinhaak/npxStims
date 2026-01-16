@@ -294,8 +294,6 @@ try
         rng(s); % Initialize RNG with a specific seed
         initialRNGstates{s} = rng; % Store the state
     end
-    % > NB, starting frame for different directions is the same for the
-    % same seed; no need to change this!
     
     % Create unique stimulus combinations and the full trial list
     % [cohGrid, dirGrid] = meshgrid(coherenceLevels, cohDirectionsDeg);
