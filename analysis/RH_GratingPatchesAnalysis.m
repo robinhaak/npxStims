@@ -7,19 +7,19 @@
 
 vecChs = 1:385; %inputs channels to plot (1 = bottom Ch?)
 
-%% query user for file names & locations
-%ap.bin en ap.meta
-[strAp,strPathIm] = uigetfile('*.ap.bin','Select imec .ap.bin file','MultiSelect','off');
-sMetaIm = DP_ReadMeta(fullpath(strPathIm,[strAp(1:end-4) '.meta']));
-
-%structEP
-[strLog,strLogPath] = uigetfile('*.mat','Select trial-based log file','MultiSelect','off');
-load(fullpath(strLogPath,strLog)); % %#ok<ows');
-
-%% detect spikes on each channel
-[vecSpikeCh,vecSpikeT,~] = DP_DetectSpikesInBinaryFile(fullpath(strPathIm,strAp),[],[],'int16'); %strClass='int16'
-vecSpikeSecs = double(vecSpikeT)/str2double(sMetaIm.imSampRate)+...
-	str2double(sMetaIm.firstSample)/str2double(sMetaIm.imSampRate); %convert to seconds+add offset
+% %% query user for file names & locations
+% %ap.bin en ap.meta
+% [strAp,strPathIm] = uigetfile('*.ap.bin','Select imec .ap.bin file','MultiSelect','off');
+% sMetaIm = DP_ReadMeta(fullpath(strPathIm,[strAp(1:end-4) '.meta']));
+% 
+% %structEP
+% [strLog,strLogPath] = uigetfile('*.mat','Select trial-based log file','MultiSelect','off');
+% load(fullpath(strLogPath,strLog)); % %#ok<ows');
+% 
+% %% detect spikes on each channel
+% [vecSpikeCh,vecSpikeT,~] = DP_DetectSpikesInBinaryFile(fullpath(strPathIm,strAp),[],[],'int16'); %strClass='int16'
+% vecSpikeSecs = double(vecSpikeT)/str2double(sMetaIm.imSampRate)+...
+% 	str2double(sMetaIm.firstSample)/str2double(sMetaIm.imSampRate); %convert to seconds+add offset
 intNumChs = str2num(sMetaIm.nSavedChans); %#ok<ST2NM>
 
 %% get stimulus onset times
@@ -28,7 +28,7 @@ vecStimOnSecs = structEP.ActOnNI; %NI stream times
 vecStimOffSecs = structEP.ActOffNI;
 
 %% get grid data
-vecUniqueRects = unique(structEP.vecDstRect','rows'); %unique dst rects
+vecUniquneRects = unique(structEP.vecDstRect','rows'); %unique dst rects
 vecUniqueStims = 1:length(vecUniqueRects);
 vecStimIdx = zeros(size(structEP.vecDstRect,2),1);
 for intStim = 1:length(vecUniqueRects)
@@ -39,6 +39,7 @@ vecX_pix = unique(vecUniqueRects(:,1))+(vecUniqueRects(1,3)-unique(vecUniqueRect
 vecY_pix = unique(vecUniqueRects(:,2))+(vecUniqueRects(1,4)-unique(vecUniqueRects(1,2)))/2;
 
 %% loop through data
+
 matAvgRespAll = NaN(numel(vecY_pix),numel(vecX_pix),intNumChs);
 for intCh = 1:intNumChs
 	vecSpikesCh = vecSpikeSecs(vecSpikeCh==intCh);
