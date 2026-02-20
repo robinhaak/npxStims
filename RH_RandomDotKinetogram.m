@@ -56,7 +56,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
 
     % Dot parameters (common to all sets)
     sStimParamsSettings.dblDotSize_deg = 2; % Dot size in visual degrees
-    sStimParamsSettings.dblDotSpeed_degPerSec = 10; % Dot speed, deg/s
+    sStimParamsSettings.dblDotSpeed_degPerSec = 20; % Dot speed, deg/s
     sStimParamsSettings.dblCoveragePercent = 0.12; % Screen coverage by dots
     sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is upward motion';
 
@@ -91,9 +91,9 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
         case coherenceSetLabel
             stimName = 'coherence';
             sStimParamsSettings.vecDirections_deg = 45:45:180; % Four directions
-            sStimParamsSettings.vecCoherenceLevels = [0.06 0.12 0.24 0.48 0.96];
+            sStimParamsSettings.vecCoherenceLevels = [0 0.06 0.12 0.24 0.48 0.96];
             sStimParamsSettings.vecDotLifetime_s = 1; % Dot lifetime in seconds
-            fprintf('Selected: Coherence Set (4 directions, 5 coherences, 1 lifetime)\n');
+            fprintf('Selected: Coherence Set (4 directions, 5 coherences + null, 1 lifetime)\n');
         case lifetimeSetLabel
             stimName = 'lifetime';
             sStimParamsSettings.vecDirections_deg = 45:45:180; % Four directions
@@ -113,7 +113,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblSecsEndBlank = 5;
 
     % Control variables (common)
-    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 25; % Repetitions for each unique stimulus
+    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 20; % Repetitions for each unique stimulus
     sStimParamsSettings.intNumRNGSeeds = 5; % Number of RNG seeds to use
     sStimParamsSettings.intUseDaqDevice = 1; % ID of DAQ device
     sStimParamsSettings.intUseParPool = 0; % Number of workers in parallel pool; [2]
@@ -296,31 +296,31 @@ try
     end
     % > NB, starting frame for different directions is the same for the
     % same seed; no need to change this!
-    
+
     % Create unique stimulus combinations and the full trial list
     % [cohGrid, dirGrid] = meshgrid(coherenceLevels, cohDirectionsDeg);
     % uniqueStimCombos = [cohGrid(:), dirGrid(:)]; % [coherence, direction]
     [cohGrid, dirGrid, lifeGrid] = ndgrid(coherenceLevels, cohDirectionsDeg, sStimParams.vecDotLifetime_s);
     uniqueStimCombos = [cohGrid(:), dirGrid(:), lifeGrid(:)]; % [coherence, direction, lifetime]
-    trialList = []; % Stores [coherence, direction, seedIdx] for each trial
-    for i = 1:size(uniqueStimCombos, 1)
-        coh = uniqueStimCombos(i, 1);
-        dir = uniqueStimCombos(i, 2);
-        assignedSeeds = [];
-        % Assign seeds ensuring repetitions are spread across available seeds
-        numFullSets = floor(numRepetitionsPerUniqueStim / numSeeds);
-        for s = 1:numFullSets
-            assignedSeeds = [assignedSeeds, 1:numSeeds];
-        end
-        remaining = mod(numRepetitionsPerUniqueStim, numSeeds);
-        if remaining > 0
-            assignedSeeds = [assignedSeeds, 1:remaining];
-        end
-        assignedSeeds = assignedSeeds(randperm(length(assignedSeeds))); % Randomize seed assignment
-        for r = 1:numRepetitionsPerUniqueStim
-            trialList = [trialList; coh, dir, assignedSeeds(r)];
-        end
-    end
+    % trialList = []; % Stores [coherence, direction, seedIdx] for each trial
+    % for i = 1:size(uniqueStimCombos, 1)
+    %     coh = uniqueStimCombos(i, 1);
+    %     dir = uniqueStimCombos(i, 2);
+    %     assignedSeeds = [];
+    %     % Assign seeds ensuring repetitions are spread across available seeds
+    %     numFullSets = floor(numRepetitionsPerUniqueStim / numSeeds);
+    %     for s = 1:numFullSets
+    %         assignedSeeds = [assignedSeeds, 1:numSeeds];
+    %     end
+    %     remaining = mod(numRepetitionsPerUniqueStim, numSeeds);
+    %     if remaining > 0
+    %         assignedSeeds = [assignedSeeds, 1:remaining];
+    %     end
+    %     assignedSeeds = assignedSeeds(randperm(length(assignedSeeds))); % Randomize seed assignment
+    %     for r = 1:numRepetitionsPerUniqueStim
+    %         trialList = [trialList; coh, dir, assignedSeeds(r)];
+    %     end
+    % end
     trialList = []; % Will store [coherence, direction, lifetime, seedIdx]
     for i = 1:size(uniqueStimCombos, 1)
 
@@ -340,11 +340,18 @@ try
         end
         assignedSeeds = assignedSeeds(randperm(length(assignedSeeds))); % shuffle
 
+        % for r = 1:numRepetitionsPerUniqueStim
+        %     trialList = [trialList; coh, dir, lifetime, assignedSeeds(r)];
+        % end
         for r = 1:numRepetitionsPerUniqueStim
-            trialList = [trialList; coh, dir, lifetime, assignedSeeds(r)];
+            if coh == 0
+                trialList = [trialList; coh, nan, lifetime, assignedSeeds(r)];
+            else
+                trialList = [trialList; coh, dir, lifetime, assignedSeeds(r)];
+            end
         end
     end
-   
+
 
     rng('shuffle'); % Shuffle the main RNG for actual trial order
     trialList = trialList(randperm(size(trialList,1)), :);
@@ -361,7 +368,15 @@ try
         lifetimeSeconds = uniqueKeysForPrecomputation(i,3);
         seedIdx = uniqueKeysForPrecomputation(i,4);
         dotLifetimeFrames = round(lifetimeSeconds / dblStimFrameDur);
-        key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dirDeg, lifetimeSeconds,seedIdx);
+        % key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dirDeg, lifetimeSeconds,seedIdx);
+        if coh == 0
+            key    = sprintf('coh_%.2f_dir_nan_life_%.2f_seed_%d', coh, lifetimeSeconds, seedIdx);
+            dirRad = 0;
+        else
+            key    = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dirDeg, lifetimeSeconds, seedIdx);
+            dirRad = deg2rad(dirDeg);
+        end
+        rng(initialRNGstates{seedIdx});
         rng(initialRNGstates{seedIdx}); % Reset RNG to the stored state for this specific seed
         dirRad = deg2rad(dirDeg);
         posX = rand(1, numDots) * sStimParams.intScreenWidth_pix;
@@ -534,7 +549,12 @@ try
         dir = trialList(intThisTrial,2);
         life = trialList(intThisTrial,3);
         seed = trialList(intThisTrial,4);
-        key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dir, life, seed);
+        % key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dir, life, seed);
+        if coh == 0
+            key = sprintf('coh_%.2f_dir_nan_life_%.2f_seed_%d', coh, life, seed);
+        else
+            key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dir, life, seed);
+        end
 
         % Retrieve precomputed frames from cache & store
         frames = precomputedDotsCache(key);

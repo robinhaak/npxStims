@@ -42,6 +42,9 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ...
     sStimParamsSettings.strStimType = 'GratingFullField';
     sStimParamsSettings.strOutputPath = 'C:\_Data\Exp';
     sStimParamsSettings.strTempObjectPath = 'C:\temp';
+    %visual space parameters
+    % 	sStimParamsSettings.dblSubjectPosX_cm = 0; % cm; relative to center of screen
+    % 	sStimParamsSettings.dblSubjectPosY_cm = 0; % cm; relative to center of screen
     sStimParamsSettings.dblScreenDistance_cm = 23;
     sStimParamsSettings.intCornerTrigger = 2;
     sStimParamsSettings.dblCornerSize = 1/30;

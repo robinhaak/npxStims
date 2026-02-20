@@ -45,9 +45,6 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.strStimType = 'GratingPatches';
     sStimParamsSettings.strOutputPath = 'C:\_Data\Exp'; %appends date
     sStimParamsSettings.strTempObjectPath = 'C:\temp';%X:\JorritMontijn\ or F:\Data\Temp\
-    %visual space parameters
-    % 	sStimParamsSettings.dblSubjectPosX_cm = 0; % cm; relative to center of screen
-    % 	sStimParamsSettings.dblSubjectPosY_cm = 0; % cm; relative to center of screen
     sStimParamsSettings.dblScreenDistance_cm = 23; % cm; measured [~23]
     %screen variables
     sStimParamsSettings.intCornerTrigger = 2; % integer switch; 0=none,1=upper left, 2=upper right, 3=lower left, 4=lower right
@@ -60,10 +57,10 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strc
     sStimParamsSettings.dblBackground = 0.5; %background intensity (dbl, [0 1])
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
     %stimulus parameters
-    sStimParamsSettings.dblStimulusSize_deg = 9; %6 %deg; (approximate) size of grating patches
+    sStimParamsSettings.dblStimulusSize_deg = 6; %6 %deg; (approximate) size of grating patches
     sStimParamsSettings.dblSpatialFrequency_cd = 0.06;%* %0.04; %spatial frequency in cycles per degree (changed from 1/StimSizeDeg to match your first script)
     sStimParamsSettings.dblTemporalFrequency = 3; %temporal frequency in cycles per second
-    sStimParamsSettings.dblSecsDuration = 1; %s (changed from 0.5s to match your first script)
+    sStimParamsSettings.dblSecsDuration = 0.5;
     sStimParamsSettings.dblSecsInitialBlank = 5; %s
     sStimParamsSettings.dblSecsPreBlank = 0.35; %0.25 %s
     sStimParamsSettings.dblSecsPostBlank = 0.15; %0.25; %0.5 %s
@@ -131,7 +128,7 @@ else
     sParamsSGL = struct;
 end
 
-%% initialize parallel pool && gpu
+%% initialize parallel pool & gpu
 if sStimParams.intUseParPool > 0 && isempty(gcp('nocreate'))
     parpool(sStimParams.intUseParPool * [1 1]);
 end
