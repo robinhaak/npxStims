@@ -1,7 +1,7 @@
 % RH_RANDOMDOTKINEMATOGRAM
 % Show a full-screen Random Dot Kinematogram
 %
-% Robin Haak, 2025
+% Robin Haak, 2025-2026
 
 %% Suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH,*AGROW>
@@ -14,7 +14,7 @@ boolUseNI = false;  % Set to true if using National Instruments DAQ
 boolDebug = true;  % Set to true for debugging (smaller window, no sync tests)
 dblPupilLightMultiplier = 1; % Strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
-strHostAddress = '192.87.11.8'; % '192.87.11.133'; % Default host address
+strHostAddress = ''; %'192.87.11.8'; % '192.87.11.133'; % Default host address
 objDaqOut = [];
 if exist('sExpMeta','var')
     if isfield(sExpMeta,'dblPupilLightMultiplier'),dblPupilLightMultiplier=sExpMeta.dblPupilLightMultiplier;end
@@ -65,7 +65,8 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     coherenceSetLabel = 'Coherence Set (4 directions, 5 coherence levels + null, 1 lifetime level )';
     lifetimeSetLabel = 'Lifetime Set (4 directions, 1 coherence level, 5 lifetime levels)';
 
-    stimLabels = {tuningSetLabel, coherenceSetLabel, lifetimeSetLabel};
+    % stimLabels = {tuningSetLabel, coherenceSetLabel, lifetimeSetLabel};
+    stimLabels = {tuningSetLabel, coherenceSetLabel};
 
     % Show list dialog with these options
     [intSelection, tfOK] = listdlg( ...
@@ -76,7 +77,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
 
     if ~tfOK
         fprintf('No stimulus set selected. Exiting script.\n');
-        return; % User canceled, exit gracefully
+        return; % User canceled, exit
     end
 
     choice = stimLabels{intSelection};
@@ -90,7 +91,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
             fprintf('Selected: Tuning Set (8 directions, 1 coherence)\n');
         case coherenceSetLabel
             stimName = 'coherence';
-            sStimParamsSettings.vecDirections_deg = 45:45:180; % Four directions
+            sStimParamsSettings.vecDirections_deg = 0:45:315; %45:45:180; % Four directions
             sStimParamsSettings.vecCoherenceLevels = [0 0.06 0.12 0.24 0.48 0.96];
             sStimParamsSettings.vecDotLifetime_s = 1; % Dot lifetime in seconds
             fprintf('Selected: Coherence Set (4 directions, 5 coherences + null, 1 lifetime)\n');
@@ -113,7 +114,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblSecsEndBlank = 5;
 
     % Control variables (common)
-    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 25; % Repetitions for each unique stimulus
+    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 20; % Repetitions for each unique stimulus
     sStimParamsSettings.intNumRNGSeeds = 5; % Number of RNG seeds to use
     sStimParamsSettings.intUseDaqDevice = 1; % ID of DAQ device
     sStimParamsSettings.intUseParPool = 0; % Number of workers in parallel pool; [2]
@@ -218,7 +219,8 @@ try
     % Open window
     AssertOpenGL;
     KbName('UnifyKeyNames');
-    intOldVerbosity = Screen('Preference', 'Verbosity',1); %stop PTB spamming
+    intOldVerbosity = Screen('Preference', 'Verbosity'); %stop PTB spamming
+    Screen('Preference', 'Verbosity', 1);
     if boolDebug == 1, vecInitRect = [0 0 640 640];else, vecInitRect = [];end
     try
         Screen('Preference', 'SkipSyncTests', 0);
@@ -256,7 +258,7 @@ try
     dblStimFrameRate=Screen('FrameRate', ptrWindow);
     if dblStimFrameRate == 0, dblStimFrameRate = 60; end  % Fallback if refresh rate is unknown
     intStimFrameRate = round(dblStimFrameRate);
-    dblStimFrameDur = mean(1/dblStimFrameRate);
+    dblStimFrameDur = 1/dblStimFrameRate;
     dblInterFlipInterval = Screen('GetFlipInterval', ptrWindow);
     if dblStimFrameDur/dblInterFlipInterval > 1.05 || dblStimFrameDur/dblInterFlipInterval < 0.95
         warning([mfilename ':InconsistentFlipDur'],sprintf('Something iffy with flip speed and monitor refresh rate detected; frame duration is %fs, while flip interval is %fs!',dblStimFrameDur,dblInterFlipInterval)); %#ok<SPWRN>
@@ -291,11 +293,10 @@ try
     % Generate initial RNG states for reproducibility
     initialRNGstates = cell(1, numSeeds);
     for s = 1:numSeeds
-        rng(s); % Initialize RNG with a specific seed
+        % rng(s); % Initialize RNG with a specific seed, produces SAME pattern acrross blocks
+        rng('shuffle'); % Procuce block-specific patterns
         initialRNGstates{s} = rng; % Store the state
     end
-    % > NB, starting frame for different directions is the same for the
-    % same seed; no need to change this!
 
     % Create unique stimulus combinations and the full trial list
     % [cohGrid, dirGrid] = meshgrid(coherenceLevels, cohDirectionsDeg);
@@ -377,8 +378,6 @@ try
             dirRad = deg2rad(dirDeg);
         end
         rng(initialRNGstates{seedIdx});
-        rng(initialRNGstates{seedIdx}); % Reset RNG to the stored state for this specific seed
-        dirRad = deg2rad(dirDeg);
         posX = rand(1, numDots) * sStimParams.intScreenWidth_pix;
         posY = rand(1, numDots) * sStimParams.intScreenHeight_pix;
         lifetimes = randi(dotLifetimeFrames, 1, numDots); % Initial lifetimes
@@ -428,6 +427,7 @@ try
     end
     intTotalTrials = size(trialList, 1); % Total number of trials to run
     fprintf('Estimated total stimulus time: %.1f minutes\n', intTotalTrials * (sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank + sStimParams.dblSecsPreBlank) / 60);
+    
     %% Build structEP
     % Stimulus timing info
     initialBlank = sStimParams.dblSecsInitialBlank;
@@ -649,13 +649,13 @@ try
         structEP.ActStopSecs(intThisTrial) = dblTrialEndFlip; % Time when post-blank ended
         structEP.ActOnNI(intThisTrial) = dblStimOnNI;
         structEP.ActOffNI(intThisTrial) = dblStimOffNI;
-        %%increment trial number
+        % Increment trial number
         intThisTrial = intThisTrial+1;
     end
     % Save data before final blank/cleanup
     structEP.sStimParams = sStimParams; % Store all stimulus parameters
     save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL'); % sParamsSGL might be empty if not using SGL
-    % show summary
+    % Show summary
     fprintf('Finished experiment & data saving at [%s], waiting for end blank (dur=%.2fs)\n',getTime,sStimParams.dblSecsEndBlank)
 
     %% Wait end-blanking
@@ -666,7 +666,7 @@ try
         dblCurrentFlip = Screen('Flip', ptrWindow); % Get current flip time
         dblEndBlankDur = dblCurrentFlip - dblEndBlankStartFlip; % Measure duration from the start of the end blank
     end
-    % clean up
+    % Clean up
     fprintf('\nExperiment is finished at [%s], closing down and cleaning up...\n',getTime);
     Screen('Close',ptrWindow);
     Screen('Close');

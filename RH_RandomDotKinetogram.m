@@ -45,7 +45,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblScreenDistance_cm = 23; % cm; measured [~23]
     % Screen variables
     sStimParamsSettings.intCornerTrigger = 2; % Integer switch; 0=none,1=upper left, 2=upper right, 3=lower left, 4=lower right
-    sStimParamsSettings.dblCornerSize = 1/30; % Fraction of screen width
+    sStimParamsSettings.dblCornerSize = 1/20; %1/30; % Fraction of screen width
     sStimParamsSettings.dblScreenWidth_cm = 51; % cm; measured [51]
     sStimParamsSettings.dblScreenHeight_cm = 29; % cm; measured [29]
     sStimParamsSettings.dblScreenWidth_deg = 2 * atand(sStimParamsSettings.dblScreenWidth_cm / (2 * sStimParamsSettings.dblScreenDistance_cm));
@@ -219,7 +219,8 @@ try
     % Open window
     AssertOpenGL;
     KbName('UnifyKeyNames');
-    intOldVerbosity = Screen('Preference', 'Verbosity',1); %stop PTB spamming
+    intOldVerbosity = Screen('Preference', 'Verbosity'); %stop PTB spamming
+    Screen('Preference', 'Verbosity', 1);
     if boolDebug == 1, vecInitRect = [0 0 640 640];else, vecInitRect = [];end
     try
         Screen('Preference', 'SkipSyncTests', 0);
@@ -257,7 +258,7 @@ try
     dblStimFrameRate=Screen('FrameRate', ptrWindow);
     if dblStimFrameRate == 0, dblStimFrameRate = 60; end  % Fallback if refresh rate is unknown
     intStimFrameRate = round(dblStimFrameRate);
-    dblStimFrameDur = mean(1/dblStimFrameRate);
+    dblStimFrameDur = 1/dblStimFrameRate;
     dblInterFlipInterval = Screen('GetFlipInterval', ptrWindow);
     if dblStimFrameDur/dblInterFlipInterval > 1.05 || dblStimFrameDur/dblInterFlipInterval < 0.95
         warning([mfilename ':InconsistentFlipDur'],sprintf('Something iffy with flip speed and monitor refresh rate detected; frame duration is %fs, while flip interval is %fs!',dblStimFrameDur,dblInterFlipInterval)); %#ok<SPWRN>
@@ -296,14 +297,23 @@ try
         rng('shuffle'); % Procuce block-specific patterns
         initialRNGstates{s} = rng; % Store the state
     end
-    % > NB, starting frame for different directions is the same for the
-    % same seed; no need to change this!
 
     % Create unique stimulus combinations and the full trial list
     % [cohGrid, dirGrid] = meshgrid(coherenceLevels, cohDirectionsDeg);
     % uniqueStimCombos = [cohGrid(:), dirGrid(:)]; % [coherence, direction]
+    % [cohGrid, dirGrid, lifeGrid] = ndgrid(coherenceLevels, cohDirectionsDeg, sStimParams.vecDotLifetime_s);
+    % uniqueStimCombos = [cohGrid(:), dirGrid(:), lifeGrid(:)]; % [coherence, direction, lifetime]
     [cohGrid, dirGrid, lifeGrid] = ndgrid(coherenceLevels, cohDirectionsDeg, sStimParams.vecDotLifetime_s);
-    uniqueStimCombos = [cohGrid(:), dirGrid(:), lifeGrid(:)]; % [coherence, direction, lifetime]
+    nonNullCombos = [cohGrid(:), dirGrid(:), lifeGrid(:)];
+    nonNullCombos = nonNullCombos(nonNullCombos(:,1) > 0, :);
+    if any(coherenceLevels ==0)
+        nullCombos = [zeros(length(sStimParams.vecDotLifetime_s), 1), ...
+            nan(length(sStimParams.vecDotLifetime_s), 1), ...
+            sStimParams.vecDotLifetime_s(:)];
+        uniqueStimCombos = [nonNullCombos; nullCombos];
+    else
+        uniqueStimCombos = nonNullCombos;
+    end
     % trialList = []; % Stores [coherence, direction, seedIdx] for each trial
     % for i = 1:size(uniqueStimCombos, 1)
     %     coh = uniqueStimCombos(i, 1);
@@ -363,7 +373,7 @@ try
     precomputedDotsCache = containers.Map; % Cache for quicker access during presentation
     dotColor = sStimParams.intBlack; % Use black dots
     backgroundColor = sStimParams.intBackground;
-    uniqueKeysForPrecomputation = unique(trialList(:, [1 2 3 4]), 'rows'); % Get unique combinations of (coh, dir, lifetime, seed)
+    uniqueKeysForPrecomputation = unique(trialList, 'rows'); % Get unique combinations of (coh, dir, lifetime, seed)
     for i = 1:size(uniqueKeysForPrecomputation,1)
         coh = uniqueKeysForPrecomputation(i,1);
         dirDeg = uniqueKeysForPrecomputation(i,2);
@@ -428,13 +438,14 @@ try
     end
     intTotalTrials = size(trialList, 1); % Total number of trials to run
     fprintf('Estimated total stimulus time: %.1f minutes\n', intTotalTrials * (sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank + sStimParams.dblSecsPreBlank) / 60);
+    
     %% Build structEP
     % Stimulus timing info
     initialBlank = sStimParams.dblSecsInitialBlank;
     % Total trial duration including pre and post blanks (effectively ITI)
-    trialDur = sStimParams.dblSecsPreBlank + sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank;
-    endBlank = sStimParams.dblSecsEndBlank;
-    totalLength = initialBlank + trialDur * intTotalTrials + endBlank;
+    dblTrialDur = sStimParams.dblSecsPreBlank + sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank;
+    dblEndBlank = sStimParams.dblSecsEndBlank;
+    dblTotalLength = initialBlank + dblTrialDur * intTotalTrials + dblEndBlank;
     % build structEP, stim-based logs
     structEP = struct;
     structEP.strExpType = [sStimParams.strStimType '_' stimName];
@@ -466,7 +477,7 @@ try
     structEP.vecDirection = nan(1,structEP.intTrialNum); % Will store RDK direction
     structEP.vecTexture = nan(1,structEP.intTrialNum); % Not applicable for RDK
     % Pre-calculated expected timings
-    structEP.vecTrialStartSecs = initialBlank:trialDur:(totalLength-endBlank-trialDur-eps); % Use eps to avoid floating point issues
+    structEP.vecTrialStartSecs = initialBlank + (0:intTotalTrials-1) * dblTrialDur;
     structEP.vecTrialStimOnSecs = structEP.vecTrialStartSecs + sStimParams.dblSecsPreBlank;
     structEP.vecTrialStimOffSecs = structEP.vecTrialStimOnSecs + sStimParams.dblSecsDuration;
     structEP.vecTrialEndSecs = structEP.vecTrialStimOffSecs + sStimParams.dblSecsPostBlank;
@@ -649,13 +660,13 @@ try
         structEP.ActStopSecs(intThisTrial) = dblTrialEndFlip; % Time when post-blank ended
         structEP.ActOnNI(intThisTrial) = dblStimOnNI;
         structEP.ActOffNI(intThisTrial) = dblStimOffNI;
-        %%increment trial number
+        % Increment trial number
         intThisTrial = intThisTrial+1;
     end
     % Save data before final blank/cleanup
     structEP.sStimParams = sStimParams; % Store all stimulus parameters
     save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL'); % sParamsSGL might be empty if not using SGL
-    % show summary
+    % Show summary
     fprintf('Finished experiment & data saving at [%s], waiting for end blank (dur=%.2fs)\n',getTime,sStimParams.dblSecsEndBlank)
 
     %% Wait end-blanking
@@ -666,7 +677,7 @@ try
         dblCurrentFlip = Screen('Flip', ptrWindow); % Get current flip time
         dblEndBlankDur = dblCurrentFlip - dblEndBlankStartFlip; % Measure duration from the start of the end blank
     end
-    % clean up
+    % Clean up
     fprintf('\nExperiment is finished at [%s], closing down and cleaning up...\n',getTime);
     Screen('Close',ptrWindow);
     Screen('Close');

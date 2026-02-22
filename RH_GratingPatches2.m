@@ -12,7 +12,7 @@ clear; close all; Screen('CloseAll');
 fprintf('Starting %s [%s]\n',mfilename,getTime);
 boolUseSGL = false;
 boolUseNI = false;
-boolDebug = false;
+boolDebug = true;
 %defaults
 dblPupilLightMultiplier = 1; %strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
@@ -39,7 +39,7 @@ end
 
 %% input params
 fprintf('Loading settings...\n');
-if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~(strcmpi(sStimParamsSettings.strStimType,'SquareGrating') || ~strcmpi(sStimParamsSettings.strStimType,'SineGrating'))
+if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcmpi(sStimParamsSettings.strStimType,'GratingPatches')
     %general
     sStimParamsSettings = struct;
     sStimParamsSettings.strStimType = 'GratingPatches';
@@ -174,7 +174,8 @@ try
     %open window
     AssertOpenGL;
     KbName('UnifyKeyNames');
-    intOldVerbosity = Screen('Preference', 'Verbosity',1); %stop PTB spamming
+    intOldVerbosity = Screen('Preference', 'Verbosity'); %stop PTB spamming
+    Screen('Preference','Verbosity',1)
     if boolDebug == 1, vecInitRect = [0 0 640 640];else, vecInitRect = [];end
     try
         Screen('Preference', 'SkipSyncTests', 0);
@@ -203,8 +204,9 @@ try
     end
     %% get refresh rate
     dblStimFrameRate=Screen('FrameRate', ptrWindow);
+    if dblStimFrameRate == 0, dblStimFrameRate = 60; end %fallback
     intStimFrameRate = round(dblStimFrameRate);
-    dblStimFrameDur = mean(1/dblStimFrameRate);
+    dblStimFrameDur = 1/dblStimFrameRate;
     dblInterFlipInterval = Screen('GetFlipInterval', ptrWindow);
     if dblStimFrameDur/dblInterFlipInterval > 1.05 || dblStimFrameDur/dblInterFlipInterval < 0.95
         warning([mfilename ':InconsistentFlipDur'],sprintf('Something iffy with flip speed and monitor refresh rate detected; frame duration is %fs, while flip interval is %fs!',dblStimFrameDur,dblInterFlipInterval)); %#ok<SPWRN>
@@ -337,7 +339,7 @@ try
     structEP.vecDstRect= nan(4,structEP.intTrialNum);
     structEP.vecDirection = nan(1,structEP.intTrialNum);
     structEP.vecTexturePhase = nan(1,structEP.intTrialNum); % Log which phase was used (0 or 1 for pi)
-    structEP.vecTrialStartSecs = initialBlank:trialDur:(totalLength-endBlank-1);
+    structEP.vecTrialStartSecs = initialBlank + (0:intTotalTrials-1) * trialDur;
     structEP.vecTrialStimOnSecs = structEP.vecTrialStartSecs+sStimParams.dblSecsPreBlank;
     structEP.vecTrialStimOffSecs = structEP.vecTrialStimOnSecs+sStimParams.dblSecsDuration;
     structEP.vecTrialEndSecs = structEP.vecTrialStimOffSecs+sStimParams.dblSecsPostBlank;
@@ -362,6 +364,7 @@ try
     structEP.strStartDate = getDate();
     structEP.strStartTime = getTime();
     %% calculate diode rectangle location
+    vecDiodeRect = [];
     if sStimParams.intCornerTrigger > 0
         %PTB uses [top,left, right, bottom] with origin at upper left
         intCornerPix = floor(sStimParams.dblCornerSize*sStimParams.intScreenWidth_pix);
@@ -456,10 +459,10 @@ try
         while toc(refTime)<(sStimParams.dblSecsDuration-2*dblStimFrameDur)
             % The drift velocity in pixels per second
             % This is the magnitude of the velocity vector
-            driftSpeed_pix_per_sec = (temporalFreq / spatialFreq) * sStimParams.dblPixelsPerDeg;
-            
-            % Shift per frame in pixels along the drift direction
-            dblShiftPerFrame = driftSpeed_pix_per_sec * dblStimFrameDur;
+            % driftSpeed_pix_per_sec = (temporalFreq / spatialFreq) * sStimParams.dblPixelsPerDeg;
+            % 
+            % % Shift per frame in pixels along the drift direction
+            % dblShiftPerFrame = driftSpeed_pix_per_sec * dblStimFrameDur;
 
             % Get the shift vector in pixels per frame along the orientation
             dx = cosd(currentDriftDirection) * dblShiftPerFrame;

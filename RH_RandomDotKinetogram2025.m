@@ -1,7 +1,7 @@
 % RH_RANDOMDOTKINEMATOGRAM
 % Show a full-screen Random Dot Kinematogram
 %
-% Robin Haak, 2025-2026
+% Robin Haak, 2025
 
 %% Suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH,*AGROW>
