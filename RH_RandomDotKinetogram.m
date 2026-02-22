@@ -1,7 +1,7 @@
 % RH_RANDOMDOTKINEMATOGRAM
 % Show a full-screen Random Dot Kinematogram
 %
-% Robin Haak, 2025
+% Robin Haak, 2025-2026
 
 %% Suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH,*AGROW>
@@ -11,10 +11,10 @@ clear; close all; Screen('CloseAll');
 fprintf('Starting %s [%s]\n',mfilename,getTime);
 boolUseSGL = false; % Set to true if using SpikeGLX
 boolUseNI = false;  % Set to true if using National Instruments DAQ
-boolDebug = false;  % Set to true for debugging (smaller window, no sync tests)
+boolDebug = true;  % Set to true for debugging (smaller window, no sync tests)
 dblPupilLightMultiplier = 1; % Strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
-strHostAddress = '192.87.11.8'; % '192.87.11.133'; % Default host address
+strHostAddress = ''; %'192.87.11.8'; % '192.87.11.133'; % Default host address
 objDaqOut = [];
 if exist('sExpMeta','var')
     if isfield(sExpMeta,'dblPupilLightMultiplier'),dblPupilLightMultiplier=sExpMeta.dblPupilLightMultiplier;end
@@ -56,16 +56,17 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
 
     % Dot parameters (common to all sets)
     sStimParamsSettings.dblDotSize_deg = 2; % Dot size in visual degrees
-    sStimParamsSettings.dblDotSpeed_degPerSec = 20; % Dot speed, deg/s
+    sStimParamsSettings.dblDotSpeed_degPerSec = 30; % Dot speed, deg/s
     sStimParamsSettings.dblCoveragePercent = 0.12; % Screen coverage by dots
     sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is upward motion';
 
     % Stimulus set selection (more robust version)
     tuningSetLabel = 'Tuning Set (8 directions, high coherence)';
-    coherenceSetLabel = 'Coherence Set (4 directions, 5 coherence levels, 1 lifetime level )';
+    coherenceSetLabel = 'Coherence Set (4 directions, 5 coherence levels + null, 1 lifetime level )';
     lifetimeSetLabel = 'Lifetime Set (4 directions, 1 coherence level, 5 lifetime levels)';
 
-    stimLabels = {tuningSetLabel, coherenceSetLabel, lifetimeSetLabel};
+    % stimLabels = {tuningSetLabel, coherenceSetLabel, lifetimeSetLabel};
+    stimLabels = {tuningSetLabel, coherenceSetLabel};
 
     % Show list dialog with these options
     [intSelection, tfOK] = listdlg( ...
@@ -76,7 +77,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
 
     if ~tfOK
         fprintf('No stimulus set selected. Exiting script.\n');
-        return; % User canceled, exit gracefully
+        return; % User canceled, exit
     end
 
     choice = stimLabels{intSelection};
@@ -113,7 +114,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblSecsEndBlank = 5;
 
     % Control variables (common)
-    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 20; % Repetitions for each unique stimulus
+    sStimParamsSettings.intNumRepetitionsPerUniqueStim = 25; % Repetitions for each unique stimulus
     sStimParamsSettings.intNumRNGSeeds = 5; % Number of RNG seeds to use
     sStimParamsSettings.intUseDaqDevice = 1; % ID of DAQ device
     sStimParamsSettings.intUseParPool = 0; % Number of workers in parallel pool; [2]
@@ -291,7 +292,8 @@ try
     % Generate initial RNG states for reproducibility
     initialRNGstates = cell(1, numSeeds);
     for s = 1:numSeeds
-        rng(s); % Initialize RNG with a specific seed
+        % rng(s); % Initialize RNG with a specific seed, produces SAME pattern acrross blocks
+        rng('shuffle'); % Procuce block-specific patterns
         initialRNGstates{s} = rng; % Store the state
     end
     % > NB, starting frame for different directions is the same for the
@@ -377,8 +379,6 @@ try
             dirRad = deg2rad(dirDeg);
         end
         rng(initialRNGstates{seedIdx});
-        rng(initialRNGstates{seedIdx}); % Reset RNG to the stored state for this specific seed
-        dirRad = deg2rad(dirDeg);
         posX = rand(1, numDots) * sStimParams.intScreenWidth_pix;
         posY = rand(1, numDots) * sStimParams.intScreenHeight_pix;
         lifetimes = randi(dotLifetimeFrames, 1, numDots); % Initial lifetimes
