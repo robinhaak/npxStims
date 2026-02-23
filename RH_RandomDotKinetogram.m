@@ -11,7 +11,7 @@ clear; close all; Screen('CloseAll');
 fprintf('Starting %s [%s]\n',mfilename,getTime);
 boolUseSGL = false; % Set to true if using SpikeGLX
 boolUseNI = false;  % Set to true if using National Instruments DAQ
-boolDebug = true;  % Set to true for debugging (smaller window, no sync tests)
+boolDebug = false;  % Set to true for debugging (smaller window, no sync tests)
 dblPupilLightMultiplier = 1; % Strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
 strHostAddress = ''; %'192.87.11.8'; % '192.87.11.133'; % Default host address

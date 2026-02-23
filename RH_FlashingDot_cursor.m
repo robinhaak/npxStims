@@ -81,7 +81,7 @@ end
 sStimParams.intStimulus = round(sStimParams.dblStimulus * 255);
 sStimParams.intStimulusAlternate = round(sStimParams.dblStimulusAlternate * 255);
 
-sStimParams.dblCornerSize = 1/30; % fraction of screen width
+sStimParams.dblCornerSize = 1/20; %1/30; % fraction of screen width
 
 
 % %screen variables

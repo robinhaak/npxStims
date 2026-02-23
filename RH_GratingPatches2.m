@@ -3,6 +3,8 @@
 % Random initial phase per patch (handled by random texture selection and drifting phase)
 % Press ESC to exit
 
+%set so that is 16 x 9!
+
 %% suppress m-lint warnings
 %#ok<*MCCD,*NASGU,*ASGLU,*CTCH>
 % clearvars -except sStimPresets sStimParamsSettings sExpMeta;
@@ -12,7 +14,7 @@ clear; close all; Screen('CloseAll');
 fprintf('Starting %s [%s]\n',mfilename,getTime);
 boolUseSGL = false;
 boolUseNI = false;
-boolDebug = true;
+boolDebug = false;
 %defaults
 dblPupilLightMultiplier = 1; %strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
@@ -48,7 +50,7 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblScreenDistance_cm = 23; % cm; measured [~23]
     %screen variables
     sStimParamsSettings.intCornerTrigger = 2; % integer switch; 0=none,1=upper left, 2=upper right, 3=lower left, 4=lower right
-    sStimParamsSettings.dblCornerSize = 1/30; % fraction of screen width
+    sStimParamsSettings.dblCornerSize = 1/20; %1/30; % fraction of screen width
     sStimParamsSettings.dblScreenWidth_cm = 51; % cm; measured [51]
     sStimParamsSettings.dblScreenHeight_cm = 29; % cm; measured [29]
     sStimParamsSettings.dblScreenWidth_deg = 2 * atand(sStimParamsSettings.dblScreenWidth_cm / (2 * sStimParamsSettings.dblScreenDistance_cm));
@@ -57,10 +59,10 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
     sStimParamsSettings.dblBackground = 0.5; %background intensity (dbl, [0 1])
     sStimParamsSettings.intBackground = round(mean(sStimParamsSettings.dblBackground)*255);
     %stimulus parameters
-    sStimParamsSettings.dblStimulusSize_deg = 6; %6 %deg; (approximate) size of grating patches
+    sStimParamsSettings.dblStimulusSize_deg = 8; %6 %deg; (approximate) size of grating patches
     sStimParamsSettings.dblSpatialFrequency_cd = 0.04; %spatial frequency in cycles per degree (changed from 1/StimSizeDeg to match your first script)
-    sStimParamsSettings.dblTemporalFrequency = 2; %temporal frequency in cycles per second
-    sStimParamsSettings.dblSecsDuration = 0.5;
+    sStimParamsSettings.dblTemporalFrequency = 1.2; %temporal frequency in cycles per second
+    sStimParamsSettings.dblSecsDuration = 1; %0.5;
     sStimParamsSettings.dblSecsInitialBlank = 5; %s
     sStimParamsSettings.dblSecsPreBlank = 0.35; %0.25 %s
     sStimParamsSettings.dblSecsPostBlank = 0.15; %0.25; %0.5 %s
