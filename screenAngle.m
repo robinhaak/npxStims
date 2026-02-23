@@ -4,14 +4,14 @@ clc; clear; close all;
 % MODE: 'forward'  -> give r1, r2, S, theta_near => get eccentricities + plot
 %       'inverse'  -> give ecc_near, ecc_far, S   => get r1, r2, theta_near + plot
 % =========================================================
-mode = 'inverse';
+mode = 'forward'; %'inverse';
 
 eye           = [0, 0];
 mouse_forward = [0, 1];
 
 % --- FORWARD inputs ---
-r1        = 24;       % cm
-r2        = 53;       % cm
+r1        = 36; %24;       % cm
+r2        = 38; %53;       % cm
 S         = 51;       % cm
 theta_near = 3*pi/4;  % rad, direction to near edge from x-axis
 
@@ -44,7 +44,7 @@ if strcmp(mode, 'inverse')
     C =  r1^2 - S^2;
     disc = B^2 - 4*A*C;
     if disc < 0
-        error('No real solution for r2 — check inputs');
+        error('No real solution for r2 ??? check inputs');
     end
     r2_candidates = [(-B + sqrt(disc))/(2*A), (-B - sqrt(disc))/(2*A)];
     r2 = r2_candidates(r2_candidates > 0);
@@ -175,29 +175,29 @@ arc_r = min(r1,r2) * 0.25;
 
 arc1 = linspace(fwd_angle_r, angle_near_r, 100);
 plot(eye_r(1) + arc_r*cos(arc1), eye_r(2) + arc_r*sin(arc1), ...
-    'r-', 'LineWidth', 1.5, 'DisplayName', sprintf('Ecc near = %.1f°', ecc_near));
+    'r-', 'LineWidth', 1.5, 'DisplayName', sprintf('Ecc near = %.1f??', ecc_near));
 text(eye_r(1) + arc_r*cos(mean(arc1)) - 2, ...
      eye_r(2) + arc_r*sin(mean(arc1)), ...
-     sprintf('%.1f°', ecc_near), 'FontSize', 11, 'Color', 'r');
+     sprintf('%.1f??', ecc_near), 'FontSize', 11, 'Color', 'r');
 
 arc2 = linspace(fwd_angle_r, angle_far_r, 100);
 plot(eye_r(1) + arc_r*1.5*cos(arc2), eye_r(2) + arc_r*1.5*sin(arc2), ...
-    'g-', 'LineWidth', 1.5, 'DisplayName', sprintf('Ecc far = %.1f°', ecc_far));
+    'g-', 'LineWidth', 1.5, 'DisplayName', sprintf('Ecc far = %.1f??', ecc_far));
 text(eye_r(1) + arc_r*1.5*cos(mean(arc2)) - 2, ...
      eye_r(2) + arc_r*1.5*sin(mean(arc2)), ...
-     sprintf('%.1f°', ecc_far), 'FontSize', 11, 'Color', 'g');
+     sprintf('%.1f??', ecc_far), 'FontSize', 11, 'Color', 'g');
 
 arc3 = linspace(angle_near_r, angle_far_r, 100);
 plot(eye_r(1) + arc_r*2.1*cos(arc3), eye_r(2) + arc_r*2.1*sin(arc3), ...
-    'm-', 'LineWidth', 2, 'DisplayName', sprintf('Visual angle = %.1f°', visual_angle_deg));
+    'm-', 'LineWidth', 2, 'DisplayName', sprintf('Visual angle = %.1f??', visual_angle_deg));
 text(eye_r(1) + arc_r*2.1*cos(mean(arc3)) - 2, ...
      eye_r(2) + arc_r*2.1*sin(mean(arc3)), ...
-     sprintf('%.1f°', visual_angle_deg), 'FontSize', 13, 'Color', 'm');
+     sprintf('%.1f??', visual_angle_deg), 'FontSize', 13, 'Color', 'm');
 
 % Labels
-text(near_r(1)-2, near_r(2)-2, sprintf('Near edge\n(ecc=%.1f°)', ecc_near), 'FontSize', 10);
-text(far_r(1)-2,  far_r(2)+2,  sprintf('Far edge\n(ecc=%.1f°)', ecc_far),  'FontSize', 10);
+text(near_r(1)-2, near_r(2)-2, sprintf('Near edge\n(ecc=%.1f??)', ecc_near), 'FontSize', 10);
+text(far_r(1)-2,  far_r(2)+2,  sprintf('Far edge\n(ecc=%.1f??)', ecc_far),  'FontSize', 10);
 
-title(sprintf('Screen placement | S=%.0fcm | ecc: %.0f° to %.0f°', S, ecc_near, ecc_far));
+title(sprintf('Screen placement | S=%.0fcm | ecc: %.0f?? to %.0f??', S, ecc_near, ecc_far));
 xlabel('cm'); ylabel('cm');
 legend('Location', 'best');
