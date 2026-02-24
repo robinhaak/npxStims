@@ -455,7 +455,7 @@ try
 	structEP.dblInterFlipInterval = dblInterFlipInterval;
 	% RDK Specific Fields
 	structEP.vecCoherence = nan(1,structEP.intTrialNum);
-	structEP.vecDirection_deg = nan(1,structEP.intTrialNum);
+% 	structEP.vecDirection_deg = nan(1,structEP.intTrialNum);
 	structEP.intRNGSeed = nan(1,structEP.intTrialNum);
 	structEP.vecDotSize_deg = repmat(sStimParams.dblDotSize_deg, [1 structEP.intTrialNum]);
 	structEP.vecDotSpeed_degPerSec = repmat(sStimParams.dblDotSpeed_degPerSec, [1 structEP.intTrialNum]);
@@ -574,7 +574,7 @@ try
 		% Populate structEP for this trial
 		structEP.vecCoherence(intThisTrial) = coh;
 		structEP.vecDotLifetime_s(intThisTrial) = life;
-		structEP.vecDirection_deg(intThisTrial) = dir;
+% 		structEP.vecDirection_deg(intThisTrial) = dir;
 		structEP.intRNGSeed(intThisTrial) = seed;
 		structEP.vecDstRect(:,intThisTrial) = [0; 0; sStimParams.intScreenWidth_pix; sStimParams.intScreenHeight_pix]; % RDK is full screen
 		structEP.vecDirection(intThisTrial) = dir; % Store the main direction
