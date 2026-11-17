@@ -3,9 +3,10 @@ function [dblStimOnNI,dblStimOffNI]= FO_customDraw(hSGL,ptrWindow,intStimNr,sSti
 	
 	%% get NI onset timestamp
 	if ~isempty(hSGL)
-		intStreamNI = -1;
-		dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
-		dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+		intStreamNI = 0; %js: stream type (0=nidq)
+		intSubStreamNI = 0; %ip: substream (0 for nidq)
+		dblSampFreqNI = GetStreamSampleRate(hSGL, intStreamNI, intSubStreamNI);
+		dblStimOnNI = GetStreamSampleCount(hSGL, intStreamNI, intSubStreamNI)/dblSampFreqNI;
 	else
 		dblStimOnNI = nan;
 	end
@@ -30,7 +31,7 @@ function [dblStimOnNI,dblStimOffNI]= FO_customDraw(hSGL,ptrWindow,intStimNr,sSti
 	
 	%% get NI offset timestamp
 	if ~isempty(hSGL)
-		dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+		dblStimOffNI = GetStreamSampleCount(hSGL, intStreamNI, intSubStreamNI)/dblSampFreqNI;
 	else
 		dblStimOffNI = nan;
 	end
