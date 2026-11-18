@@ -9,7 +9,6 @@ clear; close all; Screen('CloseAll');
 
 %% Define variables
 fprintf('Starting %s [%s]\n',mfilename,getTime);
-boolUseSGL = true; %false; % Set to true if using SpikeGLX
 boolUseNI = true; %false;  % Set to true if using National Instruments DAQ
 boolDebug = false;  % Set to true for debugging (smaller window, no sync tests)
 dblPupilLightMultiplier = 1; % Strength of infrared LEDs
@@ -214,6 +213,488 @@ if boolUseNI
 end
 
 try
+<<<<<<< HEAD
+    %% INITALIZE SCREEN
+    fprintf('Starting PsychToolBox extension...\n');
+    % Open window
+    AssertOpenGL;
+    KbName('UnifyKeyNames');
+    intOldVerbosity = Screen('Preference', 'Verbosity'); %stop PTB spamming
+    Screen('Preference', 'Verbosity', 1);
+    if boolDebug == 1, vecInitRect = [0 0 640 640];else, vecInitRect = [];end
+    try
+        Screen('Preference', 'SkipSyncTests', 0);
+        [ptrWindow,vecRect] = Screen('OpenWindow', intUseScreen,sStimParams.intBackground,vecInitRect);
+    catch ME
+        warning([mfilename ':ErrorPTB'],'Psychtoolbox error, attempting with sync test skip [msg: %s]',ME.message);
+        Screen('Preference', 'SkipSyncTests', 1);
+        [ptrWindow,vecRect] = Screen('OpenWindow', intUseScreen,sStimParams.intBackground,vecInitRect);
+    end
+    % Calibrate monitor (if gammaTable.mat exists)
+    if exist('C:\Users\neuropixels\Desktop\GammaCorrection\gammaTable.mat','file')
+        load("C:\Users\neuropixels\Desktop\GammaCorrection\gammaTable.mat", 'gammaTable');
+        Screen('LoadNormalizedGammaTable', ptrWindow, gammaTable*[1 1 1]);
+    end
+    % Window variables
+    sStimParams.ptrWindow = ptrWindow;
+    sStimParams.vecRect = vecRect;
+    sStimParams.intScreenWidth_pix = vecRect(3)-vecRect(1);
+    sStimParams.intScreenHeight_pix = vecRect(4)-vecRect(2);
+    sStimParams.intWhite = WhiteIndex(sStimParams.ptrWindow);
+    sStimParams.intBlack = BlackIndex(sStimParams.ptrWindow); % Define black index for dots
+    % Calculate pixels per degree
+    % Using the average of horizontal and vertical pixels per degree for consistency
+    sStimParams.dblPixelsPerDeg = mean([(sStimParams.intScreenWidth_pix/sStimParams.dblScreenWidth_deg) ...
+        (sStimParams.intScreenHeight_pix/sStimParams.dblScreenHeight_deg)]);
+
+    %% MAXIMIZE PRIORITY
+    intOldPriority = 0;
+    if boolDebug == 0
+        intPriorityLevel=MaxPriority(ptrWindow);
+        intOldPriority = Priority(intPriorityLevel);
+    end
+
+    %% Get refresh rate
+    dblStimFrameRate=Screen('FrameRate', ptrWindow);
+    if dblStimFrameRate == 0, dblStimFrameRate = 60; end  % Fallback if refresh rate is unknown
+    intStimFrameRate = round(dblStimFrameRate);
+    dblStimFrameDur = 1/dblStimFrameRate;
+    dblInterFlipInterval = Screen('GetFlipInterval', ptrWindow);
+    if dblStimFrameDur/dblInterFlipInterval > 1.05 || dblStimFrameDur/dblInterFlipInterval < 0.95
+        warning([mfilename ':InconsistentFlipDur'],sprintf('Something iffy with flip speed and monitor refresh rate detected; frame duration is %fs, while flip interval is %fs!',dblStimFrameDur,dblInterFlipInterval)); %#ok<SPWRN>
+    end
+
+    %% Check escape
+    if CheckEsc(),error([mfilename ':EscapePressed'],'Esc pressed; exiting');end
+
+    %% Prepare RDK stimulus parameters and precompute trajectories
+    fprintf('Precomputing RDK dot trajectories... [%s]\n', getTime);
+    % Get RDK parameters from sStimParams (now using degrees)
+    dotSizeDeg = sStimParams.dblDotSize_deg;
+    dotSpeedDegPerSec = sStimParams.dblDotSpeed_degPerSec;
+    coveragePercent = sStimParams.dblCoveragePercent;
+    % dotLifetimeSeconds = sStimParams.dblDotLifetime_s;
+    coherenceLevels = sStimParams.vecCoherenceLevels;
+    cohDirectionsDeg = sStimParams.vecDirections_deg;
+    numRepetitionsPerUniqueStim = sStimParams.intNumRepetitionsPerUniqueStim;
+    numSeeds = sStimParams.intNumRNGSeeds;
+    % Convert degree-based parameters to pixels and frames
+    dotSizePix = round(dotSizeDeg * sStimParams.dblPixelsPerDeg);
+    dotSpeedPixPerFrame = dotSpeedDegPerSec * sStimParams.dblPixelsPerDeg * dblStimFrameDur; % Speed per frame in pixels
+    % Calculate derived parameters
+    dotRadius = dotSizePix / 2;
+    dotArea = pi * (dotRadius)^2;
+    screenArea = sStimParams.intScreenWidth_pix * sStimParams.intScreenHeight_pix;
+    numDots = round((coveragePercent * screenArea) / dotArea);
+    % Ensure numDots is at least 1 to avoid issues with empty arrays
+    if numDots < 1, numDots = 1; warning('Calculated number of dots less than 1, setting to 1.'); end
+    % dotLifetimeFrames = round(dotLifetimeSeconds / dblStimFrameDur);
+    numFramesPerTrial = round(sStimParams.dblSecsDuration / dblStimFrameDur);
+    % Generate initial RNG states for reproducibility
+    initialRNGstates = cell(1, numSeeds);
+    for s = 1:numSeeds
+        % rng(s); % Initialize RNG with a specific seed, produces SAME pattern acrross blocks
+        rng('shuffle'); % Procuce block-specific patterns
+        initialRNGstates{s} = rng; % Store the state
+    end
+
+    % Create unique stimulus combinations and the full trial list
+    % [cohGrid, dirGrid] = meshgrid(coherenceLevels, cohDirectionsDeg);
+    % uniqueStimCombos = [cohGrid(:), dirGrid(:)]; % [coherence, direction]
+    % [cohGrid, dirGrid, lifeGrid] = ndgrid(coherenceLevels, cohDirectionsDeg, sStimParams.vecDotLifetime_s);
+    % uniqueStimCombos = [cohGrid(:), dirGrid(:), lifeGrid(:)]; % [coherence, direction, lifetime]
+    [cohGrid, dirGrid, lifeGrid] = ndgrid(coherenceLevels, cohDirectionsDeg, sStimParams.vecDotLifetime_s);
+    nonNullCombos = [cohGrid(:), dirGrid(:), lifeGrid(:)];
+    nonNullCombos = nonNullCombos(nonNullCombos(:,1) > 0, :);
+    if any(coherenceLevels ==0)
+        nullCombos = [zeros(length(sStimParams.vecDotLifetime_s), 1), ...
+            nan(length(sStimParams.vecDotLifetime_s), 1), ...
+            sStimParams.vecDotLifetime_s(:)];
+        uniqueStimCombos = [nonNullCombos; nullCombos];
+    else
+        uniqueStimCombos = nonNullCombos;
+    end
+    % trialList = []; % Stores [coherence, direction, seedIdx] for each trial
+    % for i = 1:size(uniqueStimCombos, 1)
+    %     coh = uniqueStimCombos(i, 1);
+    %     dir = uniqueStimCombos(i, 2);
+    %     assignedSeeds = [];
+    %     % Assign seeds ensuring repetitions are spread across available seeds
+    %     numFullSets = floor(numRepetitionsPerUniqueStim / numSeeds);
+    %     for s = 1:numFullSets
+    %         assignedSeeds = [assignedSeeds, 1:numSeeds];
+    %     end
+    %     remaining = mod(numRepetitionsPerUniqueStim, numSeeds);
+    %     if remaining > 0
+    %         assignedSeeds = [assignedSeeds, 1:remaining];
+    %     end
+    %     assignedSeeds = assignedSeeds(randperm(length(assignedSeeds))); % Randomize seed assignment
+    %     for r = 1:numRepetitionsPerUniqueStim
+    %         trialList = [trialList; coh, dir, assignedSeeds(r)];
+    %     end
+    % end
+    trialList = []; % Will store [coherence, direction, lifetime, seedIdx]
+    for i = 1:size(uniqueStimCombos, 1)
+
+        coh = uniqueStimCombos(i, 1);
+        dir = uniqueStimCombos(i, 2);
+        lifetime = uniqueStimCombos(i, 3);
+
+        % Assign seeds
+        assignedSeeds = [];
+        numFullSets = floor(numRepetitionsPerUniqueStim / numSeeds);
+        for s = 1:numFullSets
+            assignedSeeds = [assignedSeeds, 1:numSeeds];
+        end
+        remaining = mod(numRepetitionsPerUniqueStim, numSeeds);
+        if remaining > 0
+            assignedSeeds = [assignedSeeds, 1:remaining];
+        end
+        assignedSeeds = assignedSeeds(randperm(length(assignedSeeds))); % shuffle
+
+        % for r = 1:numRepetitionsPerUniqueStim
+        %     trialList = [trialList; coh, dir, lifetime, assignedSeeds(r)];
+        % end
+        for r = 1:numRepetitionsPerUniqueStim
+            if coh == 0
+                trialList = [trialList; coh, nan, lifetime, assignedSeeds(r)];
+            else
+                trialList = [trialList; coh, dir, lifetime, assignedSeeds(r)];
+            end
+        end
+    end
+
+
+    rng('shuffle'); % Shuffle the main RNG for actual trial order
+    trialList = trialList(randperm(size(trialList,1)), :);
+
+    % Precompute dot trajectories and store directly into a temporary cache.
+    % We will then transfer relevant objects to structEP later.
+    precomputedDotsCache = containers.Map; % Cache for quicker access during presentation
+    dotColor = sStimParams.intBlack; % Use black dots
+    backgroundColor = sStimParams.intBackground;
+    uniqueKeysForPrecomputation = unique(trialList, 'rows'); % Get unique combinations of (coh, dir, lifetime, seed)
+    for i = 1:size(uniqueKeysForPrecomputation,1)
+        coh = uniqueKeysForPrecomputation(i,1);
+        dirDeg = uniqueKeysForPrecomputation(i,2);
+        lifetimeSeconds = uniqueKeysForPrecomputation(i,3);
+        seedIdx = uniqueKeysForPrecomputation(i,4);
+        dotLifetimeFrames = round(lifetimeSeconds / dblStimFrameDur);
+        % key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dirDeg, lifetimeSeconds,seedIdx);
+        if coh == 0
+            key    = sprintf('coh_%.2f_dir_nan_life_%.2f_seed_%d', coh, lifetimeSeconds, seedIdx);
+            dirRad = 0;
+        else
+            key    = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dirDeg, lifetimeSeconds, seedIdx);
+            dirRad = deg2rad(dirDeg);
+        end
+        rng(initialRNGstates{seedIdx});
+        posX = rand(1, numDots) * sStimParams.intScreenWidth_pix;
+        posY = rand(1, numDots) * sStimParams.intScreenHeight_pix;
+        lifetimes = randi(dotLifetimeFrames, 1, numDots); % Initial lifetimes
+        % Determine which dots are coherent/incoherent
+        coherent = rand(1, numDots) < coh;
+        incoherent = ~coherent;
+        % Assign initial directions
+        incohDirs = rand(1, numDots) * 2 * pi; % Random directions for incoherent dots
+        dirX = cos(incohDirs);
+        dirY = -sin(incohDirs); % Y-axis is inverted in PTB (positive is down)
+        % Set coherent dot directions
+        dirX(coherent) = cos(dirRad);
+        dirY(coherent) = -sin(dirRad); % Y-axis is inverted in PTB
+        currentFrameData = cell(1, numFramesPerTrial); % Cell array to hold positions for each frame
+        for f = 1:numFramesPerTrial
+            % Update positions
+            posX = posX + dotSpeedPixPerFrame * dirX;
+            posY = posY + dotSpeedPixPerFrame * dirY;
+            % Wrap around screen boundaries
+            posX(posX < 0) = posX(posX < 0) + sStimParams.intScreenWidth_pix;
+            posX(posX >= sStimParams.intScreenWidth_pix) = posX(posX >= sStimParams.intScreenWidth_pix) - sStimParams.intScreenWidth_pix;
+            posY(posY < 0) = posY(posY < 0) + sStimParams.intScreenHeight_pix;
+            posY(posY >= sStimParams.intScreenHeight_pix) = posY(posY >= sStimParams.intScreenHeight_pix) - sStimParams.intScreenHeight_pix;
+            % Update lifetimes and re-seed dead dots
+            lifetimes = lifetimes - 1;
+            dead = lifetimes <= 0;
+            if any(dead)
+                numDead = sum(dead);
+                % Regenerate positions for dead dots
+                posX(dead) = rand(1, numDead) * sStimParams.intScreenWidth_pix;
+                posY(dead) = rand(1, numDead) * sStimParams.intScreenHeight_pix;
+                lifetimes(dead) = dotLifetimeFrames; % Reset lifetime
+                % Re-assign coherence and direction for new dots
+                coherent(dead) = rand(1, numDead) < coh;
+                incoherent(dead) = ~coherent(dead);
+                incohIdx = find(dead & incoherent);
+                newDirs = rand(1, length(incohIdx)) * 2 * pi;
+                dirX(incohIdx) = cos(newDirs);
+                dirY(incohIdx) = -sin(newDirs);
+                cohIdx = find(dead & coherent);
+                dirX(cohIdx) = cos(dirRad);
+                dirY(cohIdx) = -sin(dirRad);
+            end
+            currentFrameData{f} = [posX; posY]; % Store positions for this frame (2xNumDots matrix)
+        end
+        precomputedDotsCache(key) = currentFrameData; % Store in cache
+    end
+    intTotalTrials = size(trialList, 1); % Total number of trials to run
+    fprintf('Estimated total stimulus time: %.1f minutes\n', intTotalTrials * (sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank + sStimParams.dblSecsPreBlank) / 60);
+    
+    %% Build structEP
+    % Stimulus timing info
+    initialBlank = sStimParams.dblSecsInitialBlank;
+    % Total trial duration including pre and post blanks (effectively ITI)
+    dblTrialDur = sStimParams.dblSecsPreBlank + sStimParams.dblSecsDuration + sStimParams.dblSecsPostBlank;
+    dblEndBlank = sStimParams.dblSecsEndBlank;
+    dblTotalLength = initialBlank + dblTrialDur * intTotalTrials + dblEndBlank;
+    % build structEP, stim-based logs
+    structEP = struct;
+    structEP.strExpType = [sStimParams.strStimType '_' stimName];
+    structEP.intTrialNum = intTotalTrials;
+    structEP.TrialNumber = nan(1,structEP.intTrialNum);
+    structEP.dblStimFrameDur = dblStimFrameDur;
+    structEP.dblInterFlipInterval = dblInterFlipInterval;
+    % RDK Specific Fields
+    structEP.vecCoherence = nan(1,structEP.intTrialNum);
+    % structEP.vecDirection_deg = nan(1,structEP.intTrialNum);
+    structEP.intRNGSeed = nan(1,structEP.intTrialNum);
+    structEP.vecDotSize_deg = repmat(sStimParams.dblDotSize_deg, [1 structEP.intTrialNum]);
+    structEP.vecDotSpeed_degPerSec = repmat(sStimParams.dblDotSpeed_degPerSec, [1 structEP.intTrialNum]);
+    structEP.vecCoveragePercent = repmat(sStimParams.dblCoveragePercent, [1 structEP.intTrialNum]);
+    % structEP.dblDotLifetime_s = repmat(sStimParams.dblDotLifetime_s, [1 structEP.intTrialNum]);
+    structEP.vecDotLifetime_s =nan(1,structEP.intTrialNum);
+    structEP.intNumDots = repmat(numDots, [1 structEP.intTrialNum]); % Store actual number of dots
+    % Removed: structEP.strDotLocationsFilePath = cell(1,structEP.intTrialNum); % New field to store path to saved dot locations
+    structEP.stimObjects = cell(1, structEP.intTrialNum); % **NEW FIELD** to store precomputed dot locations
+    % General timing log fields
+    structEP.ActOnSecs = nan(1,structEP.intTrialNum);
+    structEP.ActOffSecs = nan(1,structEP.intTrialNum);
+    structEP.ActStartSecs = nan(1,structEP.intTrialNum);
+    structEP.ActStopSecs = nan(1,structEP.intTrialNum);
+    structEP.ActOnNI = nan(1,structEP.intTrialNum);
+    structEP.ActOffNI = nan(1,structEP.intTrialNum);
+    % Define dummy/placeholder fields for compatibility if necessary
+    structEP.vecDstRect= nan(4,structEP.intTrialNum); % RDK typically full screen
+    structEP.vecDirection = nan(1,structEP.intTrialNum); % Will store RDK direction
+    structEP.vecTexture = nan(1,structEP.intTrialNum); % Not applicable for RDK
+    % Pre-calculated expected timings
+    structEP.vecTrialStartSecs = initialBlank + (0:intTotalTrials-1) * dblTrialDur;
+    structEP.vecTrialStimOnSecs = structEP.vecTrialStartSecs + sStimParams.dblSecsPreBlank;
+    structEP.vecTrialStimOffSecs = structEP.vecTrialStimOnSecs + sStimParams.dblSecsDuration;
+    structEP.vecTrialEndSecs = structEP.vecTrialStimOffSecs + sStimParams.dblSecsPostBlank;
+
+    %% PRESENT STIMULI
+    % wait for signal
+    opts = struct;
+    opts.Default = 'Start';
+    opts.Interpreter = 'tex';
+    strAns = questdlg('Would you like to start the stimulation?', ...
+        'Start Stimulation', ...
+        'Start','Cancel',opts);
+    if ~strcmp(strAns,opts.Default)
+        error([mfilename ':RunCancelled'],'Cancelling');
+    end
+    % Hide cursor
+    % HideCursor(ptrWindow);
+    % Set timers
+    hTic = tic;
+    dblLastFlip = Screen('Flip', ptrWindow);
+    dblInitialFlip = dblLastFlip;
+    % Timestamp start
+    structEP.strStartDate = getDate();
+    structEP.strStartTime = getTime();
+
+    %% Calculate diode rectangle location
+    vecDiodeRect = []; % Initialize as empty
+    if sStimParams.intCornerTrigger > 0
+        % PTB uses [top,left, right, bottom] with origin at upper left
+        intCornerPix = floor(sStimParams.dblCornerSize*sStimParams.intScreenWidth_pix);
+        if sStimParams.intCornerTrigger == 1 %upper left
+            vecDiodeRect =  [0 0 intCornerPix intCornerPix];
+        elseif sStimParams.intCornerTrigger == 2 %upper right
+            vecDiodeRect =  [(vecRect(3)-intCornerPix) 0 vecRect(3) intCornerPix];
+        elseif sStimParams.intCornerTrigger == 3 %lower left
+            vecDiodeRect =  [0 (vecRect(4) - intCornerPix) intCornerPix  vecRect(4)];
+        elseif sStimParams.intCornerTrigger == 4 %lower right
+            vecDiodeRect =  [(vecRect(3)-intCornerPix) (vecRect(4) - intCornerPix) vecRect(3)  vecRect(4)];
+        end
+    end
+    %% Wait initial blanking
+    fprintf('Starting initial blank (dur=%.2fs) [%s]\n',sStimParams.dblSecsInitialBlank,getTime);
+    dblInitialBlankDur = 0;
+    while dblInitialBlankDur < (sStimParams.dblSecsInitialBlank-dblStimFrameDur/2)
+        Screen('FillRect',ptrWindow,sStimParams.intBackground);
+        dblLastFlipFlip = Screen('Flip', ptrWindow,dblLastFlip + dblStimFrameDur/2);
+        dblInitialBlankDur = dblLastFlipFlip - dblInitialFlip;
+    end
+
+    %% Draw stimuli on screen
+    intThisTrial = 1;
+    while intThisTrial <= intTotalTrials && ~CheckEsc()
+        % Check whether script execution should be paused
+        if CheckPause()
+            fprintf('\n\n<strong>STIMULUS SCRIPT PAUSED!</strong> [%s]\n\n',getTime);
+            WaitSecs(1);
+            % Get user input
+            opts = struct;
+            opts.Default = 'Restart';
+            opts.Interpreter = 'tex';
+            strAns = questdlg('STIMULUS SCRIPT PAUSED! Would you like to restart the stimulation?', ...
+                'Restart Stimulation', ...
+                'Restart',opts);
+            WaitSecs(1);
+        end
+        % Trial start; background
+        Screen('FillRect',ptrWindow, sStimParams.intBackground);
+        dblTrialStartFlip = Screen('Flip', ptrWindow); % Actual start of trial timing
+        % Fill DAQ with data (for 250ms pulse if used)
+        if boolUseNI
+            stop(objDaqOut);
+            outputData1 = dblSyncLightMultiplier*cat(1,linspace(3, 3, 200)',linspace(0, 0, 50)'); % e.g., for synclight
+            outputData2 = dblPupilLightMultiplier*linspace(3, 3, 250)'; % e.g., for pupil light
+            queueOutputData(objDaqOut,[outputData1 outputData2]);
+            prepare(objDaqOut);
+        end
+
+        % Get RDK parameters for this trial
+        coh = trialList(intThisTrial,1);
+        dir = trialList(intThisTrial,2);
+        life = trialList(intThisTrial,3);
+        seed = trialList(intThisTrial,4);
+        % key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dir, life, seed);
+        if coh == 0
+            key = sprintf('coh_%.2f_dir_nan_life_%.2f_seed_%d', coh, life, seed);
+        else
+            key = sprintf('coh_%.2f_dir_%.0f_life_%.2f_seed_%d', coh, dir, life, seed);
+        end
+
+        % Retrieve precomputed frames from cache & store
+        frames = precomputedDotsCache(key);
+        structEP.stimObjects{intThisTrial} = frames;
+
+        % Populate structEP for this trial
+        structEP.vecCoherence(intThisTrial) = coh;
+        structEP.vecDotLifetime_s(intThisTrial) = life;
+        % structEP.vecDirection_deg(intThisTrial) = dir;
+        structEP.intRNGSeed(intThisTrial) = seed;
+        structEP.vecDstRect(:,intThisTrial) = [0; 0; sStimParams.intScreenWidth_pix; sStimParams.intScreenHeight_pix]; % RDK is full screen
+        structEP.vecDirection(intThisTrial) = dir; % Store the main direction
+        structEP.vecTexture(intThisTrial) = nan; % Not applicable for RDK
+        % Removed: structEP.strDotLocationsFilePath{intThisTrial} = dotLocFilePath; % No longer storing file path
+        % Get *expected* timing for this trial from pre-calculated values
+        expectedStimOnSecs = structEP.vecTrialStimOnSecs(intThisTrial);
+        expectedStimOffSecs = structEP.vecTrialStimOffSecs(intThisTrial);
+        expectedEndSecs = structEP.vecTrialEndSecs(intThisTrial); % This is the end of the *trial block*
+        % Display in command window
+        fprintf('%d/%d: Coherence=%.2f, Direction=%.0f deg, Lifetime=%.2f s Seed=%d [%s]\n', ...
+            intThisTrial, intTotalTrials, coh, dir, life, seed, getTime);
+
+        %% Wait pre-blanking
+        % Target time for pre-blank to end is (expectedStimOnSecs - dblInitialFlip)
+        % The actual start of the trial was dblTrialStartFlip.
+        % So, we want the pre-blank to last for sStimParams.dblSecsPreBlank seconds.
+        Screen('FillRect',ptrWindow,sStimParams.intBackground);
+        dblLastFlip = Screen('Flip', ptrWindow); % First flip of pre-blank
+        % Keep flipping until the expected stimulus onset time is reached, relative to dblTrialStartFlip
+        while (GetSecs - dblTrialStartFlip) < (sStimParams.dblSecsPreBlank - dblStimFrameDur/2)
+            Screen('FillRect',ptrWindow, sStimParams.intBackground);
+            % Schedule flip for next frame
+            dblLastFlip = Screen('Flip', ptrWindow, dblLastFlip + dblStimFrameDur/2);
+        end
+
+        %% 250ms pulse at stim start (if using NI DAQ)
+        if boolUseNI,startBackground(objDaqOut);end % This triggers the pre-defined DAQ output
+
+        %% Present RDK stimulus
+        boolFirstFlip = false;
+        for f = 1:numFramesPerTrial % Iterate through precomputed frames
+            Screen('FillRect', sStimParams.ptrWindow, backgroundColor); % Clear screen with background color
+            Screen('DrawDots', sStimParams.ptrWindow, frames{f}, dotSizePix, dotColor, [], 3); % Draw dots
+            % Draw diode trigger (if enabled) - white during stimulus
+            if ~isempty(vecDiodeRect)
+                Screen('FillRect',sStimParams.ptrWindow,sStimParams.intWhite,vecDiodeRect);
+            end
+            Screen('DrawingFinished',sStimParams.ptrWindow); % Optimize drawing commands
+            dblLastFlip = Screen('Flip',sStimParams.ptrWindow,dblLastFlip+dblInterFlipInterval/2); % Flip at desired interval
+            % Send trigger for stim start on the very first flip of the stimulus presentation
+            if ~boolFirstFlip
+                boolFirstFlip = true;
+                % Log NI timestamp
+                if boolUseSGL
+                    dblStimOnNI = GetStreamSampleCount(hSGL, intStreamNI, strHostAddress)/dblSampFreqNI;
+                else
+                    dblStimOnNI = nan;
+                end
+                % Log Psychtoolbox flip timestamp
+                dblStimOnFlip = dblLastFlip;
+            end
+        end
+        % Transition back to background after stimulus
+        Screen('FillRect',ptrWindow, sStimParams.intBackground);
+
+        dblStimOffFlip = Screen('Flip', ptrWindow, dblLastFlip+dblStimFrameDur/2); % Actual stim off flip
+        % dblStimDur = dblStimOffFlip-dblStimOnFlip; % Actual stimulus duration (already logged from expected)
+        % Log NI timestamp for stim off
+        if boolUseSGL
+            dblStimOffNI =  GetStreamSampleCount(hSGL, intStreamNI, strHostAddress)/dblSampFreqNI;
+        else
+            dblStimOffNI = nan;
+        end
+        %% Wait post-blanking (effectively ITI)
+        % We want the post-blank to last for sStimParams.dblSecsPostBlank seconds.
+        % It started after dblStimOffFlip.
+        Screen('FillRect',ptrWindow, sStimParams.intBackground);
+        % The first flip of the post-blank period already happened at dblStimOffFlip.
+        % So, we start the timing from that point.
+        while (GetSecs - dblStimOffFlip) < (sStimParams.dblSecsPostBlank - dblStimFrameDur/2)
+            Screen('FillRect',ptrWindow, sStimParams.intBackground);
+            % Schedule flip for next frame
+            dblLastFlip = Screen('Flip', ptrWindow, dblLastFlip + dblStimFrameDur/2);
+        end
+        % Capture the actual end time of this trial block (end of post-blank)
+        dblTrialEndFlip = dblLastFlip;
+        % Log actual timing data into structEP
+        structEP.TrialNumber(intThisTrial) = intThisTrial;
+        structEP.ActStartSecs(intThisTrial) = dblTrialStartFlip; % Time when pre-blank started
+        structEP.ActOnSecs(intThisTrial) = dblStimOnFlip; % Time when stimulus started
+        structEP.ActOffSecs(intThisTrial) = dblStimOffFlip; % Time when stimulus ended
+        structEP.ActStopSecs(intThisTrial) = dblTrialEndFlip; % Time when post-blank ended
+        structEP.ActOnNI(intThisTrial) = dblStimOnNI;
+        structEP.ActOffNI(intThisTrial) = dblStimOffNI;
+        % Increment trial number
+        intThisTrial = intThisTrial+1;
+    end
+    % Save data before final blank/cleanup
+    structEP.sStimParams = sStimParams; % Store all stimulus parameters
+    save(fullfile(strLogDir,strFilename), 'structEP','sParamsSGL'); % sParamsSGL might be empty if not using SGL
+    % Show summary
+    fprintf('Finished experiment & data saving at [%s], waiting for end blank (dur=%.2fs)\n',getTime,sStimParams.dblSecsEndBlank)
+
+    %% Wait end-blanking
+    dblEndBlankStartFlip = dblLastFlip; % Start time for the final blank from the last flip of the last trial
+    dblEndBlankDur = 0;
+    while dblEndBlankDur < sStimParams.dblSecsEndBlank
+        Screen('FillRect',ptrWindow, sStimParams.intBackground);
+        dblCurrentFlip = Screen('Flip', ptrWindow); % Get current flip time
+        dblEndBlankDur = dblCurrentFlip - dblEndBlankStartFlip; % Measure duration from the start of the end blank
+    end
+    % Clean up
+    fprintf('\nExperiment is finished at [%s], closing down and cleaning up...\n',getTime);
+    Screen('Close',ptrWindow);
+    Screen('Close');
+    Screen('CloseAll');
+    ShowCursor;
+    Priority(0);
+    Screen('Preference', 'Verbosity',intOldVerbosity);
+
+    %% Close Daq IO
+    if boolUseNI && ~(exist('sExpMeta','var') && isfield(sExpMeta,'objDaqOut'))
+        try
+            closeDaqOutput(objDaqOut);
+        catch
+            % Error closing DAQ, can ignore for clean exit if already closing
+        end
+    end
+=======
 	%% INITALIZE SCREEN
 	fprintf('Starting PsychToolBox extension...\n');
 	% Open window
@@ -694,6 +1175,7 @@ try
 			% Error closing DAQ, can ignore for clean exit if already closing
 		end
 	end
+>>>>>>> d19940bb4542ea07a410ff2814e7d6b563f365f4
 catch ME
 	
 	%% General error handling block

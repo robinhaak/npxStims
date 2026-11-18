@@ -28,8 +28,14 @@ else
 	hSGL = SpikeGL(strHostAddress);
 end
 
-intStreamNI = -1;
-dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+intStreamNI = 0; %js: stream type (0=nidq)
+intSubStreamNI = 0; %ip: substream (0 for nidq)
+if boolUseSGL && ~isempty(hSGL)
+	dblSampFreqNI = GetStreamSampleRate(hSGL, intStreamNI, intSubStreamNI);
+else
+	boolUseSGL = false;
+	dblSampFreqNI = nan;
+end
 
 %% start PTB
 try
@@ -185,7 +191,7 @@ try
 					boolFirstFlip = true;
 					%log NI timestamp
 					if boolUseSGL
-						dblStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+						dblStimOnNI = GetStreamSampleCount(hSGL, intStreamNI, intSubStreamNI)/dblSampFreqNI;
 					else
 						dblStimOnNI = nan;
 					end
@@ -202,7 +208,7 @@ try
 			
 			%log NI timestamp
 			if boolUseSGL
-				dblStimOffNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+				dblStimOffNI = GetStreamSampleCount(hSGL, intStreamNI, intSubStreamNI)/dblSampFreqNI;
 			else
 				dblStimOffNI = nan; %#ok<UNRCH>
 			end

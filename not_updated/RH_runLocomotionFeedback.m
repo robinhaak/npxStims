@@ -18,7 +18,8 @@ boolDebug = false;
 %niCh2=sync
 intStimOnsetChanNI=0;
 intRunningChanNI=1;
-intStreamNI=-1;
+intStreamNI=0; %js: stream type (0=nidq)
+intSubStreamNI=0; %ip: substream (0 for nidq)
 
 %% define variables
 %defaults
@@ -144,8 +145,7 @@ if boolUseSGL
 	fprintf('SGL saving to "%s", matlab saving to "%s.mat" [%s]...\n',strRunName,strFilename,getTime);
 	
 	%retrieve some parameters
-	intStreamNI = -1;
-	dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+	dblSampFreqNI = GetStreamSampleRate(hSGL, intStreamNI, intSubStreamNI);
 	
 	%% check disk space available
 	strDataDirSGL = GetDataDir(hSGL);
@@ -155,13 +155,14 @@ if boolUseSGL
 	
 	%% prepare real-time stream
 	%retrieve some parameters
-	dblSampFreqNI = GetSampleRate(hSGL, intStreamNI);
+	dblSampFreqNI = GetStreamSampleRate(hSGL, intStreamNI, intSubStreamNI);
 	dblNI2V = (sParamsSGL.niAiRangeMax)/(double(intmax('int16'))/2);
 	
 	%assign data
 	sStream = SC_populateStreamCoreStructure([]);
 	sStream.NI2V = dblNI2V;
 	sStream.intStreamNI = intStreamNI;
+	sStream.intSubStreamNI = intSubStreamNI;
 	sStream.intStimOnsetChanNI=intStimOnsetChanNI;
 	sStream.intRunningChanNI=intRunningChanNI;
 	sStream.dblSampFreqNI=dblSampFreqNI;
@@ -256,6 +257,7 @@ try
 	dblApproxStimDur = (sStimParams.dblScreenHeight_deg+sStimParams.dblSize_deg)/sStimParams.dblSpeed_deg;
 	
 	vecIsActive = zeros(sStimParams.intTrials,1);
+	dblRunSpeed = nan;
 	
 	%fixed stuff
 	sStimParams.strHostAddress=strHostAddress;
@@ -317,7 +319,7 @@ try
 		if toc(hTic) < dblMaxTimeActive_s && intStimNumber < intTrialsActive
 			%read running speed
 			if boolUseSGL
-				[vecSamples,vecRunningData,vecSyncData,sStream]=readRunningSpeed(sStream,intRunningChanNI,intStimOnsetChanNI);
+				[vecSamples,vecRunningData,vecSyncData,sStream]=RH_readRunningSpeed(sStream,intRunningChanNI,intStimOnsetChanNI);
 				sRunSpeed = PP_GetRunSpeed(vecRunningData,dblSampFreqNI);
 				vecTimestamps_s = sRunSpeed.vecOutT + sStream.dblEphysTimeNI;
 				vecTraversed_m = sRunSpeed.vecTraversed_m;
@@ -380,7 +382,7 @@ try
 			
 			%% get approximate timestamp for start
 			if ~isempty(hSGL)
-				dblApproxStimOnNI = GetScanCount(hSGL, intStreamNI)/dblSampFreqNI;
+				dblApproxStimOnNI = GetStreamSampleCount(hSGL, intStreamNI, intSubStreamNI)/dblSampFreqNI;
 			else
 				dblApproxStimOnNI = toc(hTic);
 			end
