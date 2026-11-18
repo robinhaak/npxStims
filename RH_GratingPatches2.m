@@ -18,7 +18,7 @@ boolDebug = false;
 %defaults
 dblPupilLightMultiplier = 1; %strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
-strHostAddress = '10.43.1.47'; %'192.87.11.133'; %default host address
+strHostAddress = '10.43.1.64'; %'192.87.11.133'; %default host address
 objDaqOut = [];
 if exist('sExpMeta','var')
 	%expand structure
@@ -67,7 +67,9 @@ if ~exist('sStimParamsSettings','var') || isempty(sStimParamsSettings) || ~strcm
 	sStimParamsSettings.dblSecsPreBlank = 0.35; %0.25 %s
 	sStimParamsSettings.dblSecsPostBlank = 0.15; %0.25; %0.5 %s
 	sStimParamsSettings.dblSecsEndBlank = 5; %s
+	
 	sStimParamsSettings.intStimulusRepeats = 5; %per location (irrespective of direction or phase)
+	
 	sStimParamsSettings.vecDirections = 45:45:180; %drifting directions
 	sStimParamsSettings.str90Deg = '0 degrees is rightward motion; 90 degrees is upward motion';
 	%*for size= 9deg & tf= 3Hz, spf= ~0.11c/deg, speed= 27deg/s

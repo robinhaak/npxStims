@@ -1,4 +1,4 @@
-% RH_FLASHINGDOT_CURSOR
+``% RH_FLASHINGDOT_CURSOR
 % Robin Haak, 2022-2025
 %
 % Displays a flashing dot stimulus at the mouse cursor position.The dot

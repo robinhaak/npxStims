@@ -14,7 +14,7 @@ boolUseNI = true; %false;  % Set to true if using National Instruments DAQ
 boolDebug = false;  % Set to true for debugging (smaller window, no sync tests)
 dblPupilLightMultiplier = 1; % Strength of infrared LEDs
 dblSyncLightMultiplier = 0.5;
-strHostAddress = '10.43.1.47'; %'192.87.11.8'; % '192.87.11.133'; % Default host address
+strHostAddress = '10.43.1.64'; %'192.87.11.8'; % '192.87.11.133'; % Default host address
 objDaqOut = []; 
 if exist('sExpMeta','var')
 	if isfield(sExpMeta,'dblPupilLightMultiplier'),dblPupilLightMultiplier=sExpMeta.dblPupilLightMultiplier;end

@@ -20,15 +20,15 @@ vecSpikeCh = double(vecSpikeCh);
 
 meta = ReadMeta(metaFile);
 vecSpikeSecs = double(vecSpikeT)/str2double(meta.imSampRate) + ...
-               str2double(meta.firstSample)/str2double(meta.imSampRate);
+	str2double(meta.firstSample)/str2double(meta.imSampRate);
 
 %% 3. Get shank/channel geometry
 if isfield(meta,'snsGeomMap')
-    [nShank, shankWidth, shankPitch, shankInd, xCoord, yCoord, connected] = geomMapToGeom(meta);
+	[nShank, shankWidth, shankPitch, shankInd, xCoord, yCoord, connected] = geomMapToGeom(meta);
 elseif isfield(meta,'snsShankMap')
-    [nShank, shankWidth, shankPitch, shankInd, xCoord, yCoord, connected] = shankMapToGeom(meta);
+	[nShank, shankWidth, shankPitch, shankInd, xCoord, yCoord, connected] = shankMapToGeom(meta);
 else
-    error('No geometry information found in metadata.');
+	error('No geometry information found in metadata.');
 end
 
 shankInd = shankInd + 1;
@@ -41,12 +41,12 @@ vecStimOnSecs  = structEP.ActOnNI;
 vecStimOffSecs = structEP.ActOffNI;
 
 %% 5. Get grid positions
-vecUniqueRects = unique(structEP.vecDstRect','rows'); 
+vecUniqueRects = unique(structEP.vecDstRect','rows');
 vecUniqueStims = 1:length(vecUniqueRects);
 
 vecStimIdx = zeros(size(structEP.vecDstRect,2),1);
 for intStim = 1:length(vecUniqueRects)
-    vecStimIdx(ismember(structEP.vecDstRect', vecUniqueRects(intStim,:), 'rows')) = vecUniqueStims(intStim);
+	vecStimIdx(ismember(structEP.vecDstRect', vecUniqueRects(intStim,:), 'rows')) = vecUniqueStims(intStim);
 end
 
 vecX_pix = unique(vecUniqueRects(:,1)) + (vecUniqueRects(1,3)-unique(vecUniqueRects(1,1)))/2;
@@ -69,19 +69,19 @@ vecSpikeSecs = vecSpikeSecs(validIdx);
 stimDur = vecStimOffSecs - vecStimOnSecs;
 
 for intCh = 1:intNumChs
-    vecSpikesCh = vecSpikeSecs(vecSpikeCh == intCh);
-    spikeCountsPerTrial = arrayfun(@(on,off) sum(vecSpikesCh >= on & vecSpikesCh < off), ...
-                                   vecStimOnSecs, vecStimOffSecs);
-
-    rfMat = nan(nY, nX);
-    for stimIdx = 1:length(vecUniqueStims)
-        trials = find(vecStimIdx == stimIdx);
-        if isempty(trials), continue; end
-        [yPos, xPos] = ind2sub([nY, nX], stimIdx);
-        rfMat(yPos, xPos) = mean(spikeCountsPerTrial(trials) ./ stimDur(trials));
-    end
-
-    matAvgRespAll(:,:,intCh) = rfMat;
+	vecSpikesCh = vecSpikeSecs(vecSpikeCh == intCh);
+	spikeCountsPerTrial = arrayfun(@(on,off) sum(vecSpikesCh >= on & vecSpikesCh < off), ...
+		vecStimOnSecs, vecStimOffSecs);
+	
+	rfMat = nan(nY, nX);
+	for stimIdx = 1:length(vecUniqueStims)
+		trials = find(vecStimIdx == stimIdx);
+		if isempty(trials), continue; end
+		[yPos, xPos] = ind2sub([nY, nX], stimIdx);
+		rfMat(yPos, xPos) = mean(spikeCountsPerTrial(trials) ./ stimDur(trials));
+	end
+	
+	matAvgRespAll(:,:,intCh) = rfMat;
 end
 
 %% 7. Compute RF COM-based sharpness and RF SNR
@@ -89,24 +89,24 @@ vecRF_COMspread = nan(intNumChs,1); % COM-based sharpness
 vecRF_SNR      = nan(intNumChs,1);  % RF SNR
 
 for intCh = 1:intNumChs
-    rfMat = matAvgRespAll(:,:,intCh);
-    rfVals = rfMat(~isnan(rfMat));
-
-    if numel(rfVals) < 2 || std(rfVals) == 0
-        continue
-    end
-
-    % COM-based sharpness
-    [xGrid, yGrid] = meshgrid(1:nX, 1:nY);
-    rfMatFilled = rfMat; rfMatFilled(isnan(rfMatFilled)) = 0;
-    rfNorm = rfMatFilled / sum(rfMatFilled(:));
-    xCOM = sum(xGrid(:).*rfNorm(:));
-    yCOM = sum(yGrid(:).*rfNorm(:));
-    rfSpread = sum(rfNorm(:).* ((xGrid(:)-xCOM).^2 + (yGrid(:)-yCOM).^2));
-    vecRF_COMspread(intCh) = 1 / (rfSpread + eps);
-
-    % RF SNR
-    vecRF_SNR(intCh) = (max(rfVals) - mean(rfVals)) / std(rfVals);
+	rfMat = matAvgRespAll(:,:,intCh);
+	rfVals = rfMat(~isnan(rfMat));
+	
+	if numel(rfVals) < 2 || std(rfVals) == 0
+		continue
+	end
+	
+	% COM-based sharpness
+	[xGrid, yGrid] = meshgrid(1:nX, 1:nY);
+	rfMatFilled = rfMat; rfMatFilled(isnan(rfMatFilled)) = 0;
+	rfNorm = rfMatFilled / sum(rfMatFilled(:));
+	xCOM = sum(xGrid(:).*rfNorm(:));
+	yCOM = sum(yGrid(:).*rfNorm(:));
+	rfSpread = sum(rfNorm(:).* ((xGrid(:)-xCOM).^2 + (yGrid(:)-yCOM).^2));
+	vecRF_COMspread(intCh) = 1 / (rfSpread + eps);
+	
+	% RF SNR
+	vecRF_SNR(intCh) = (max(rfVals) - mean(rfVals)) / std(rfVals);
 end
 
 % Remove extreme outliers
@@ -122,60 +122,67 @@ vecRF_SNR(isnan(vecRF_SNR)) = NaN;
 % COM-based RF sharpness
 figure('Name','RF Sharpness (COM Spread)','Color','w'); hold on;
 for sI = 1:nShank
-    chIdx = find(shankInd == sI);
-    xOffset = shankPitch*(sI-1);
-
-    nanCh = isnan(vecRF_COMspread(chIdx));
-    validCh = ~nanCh;
-
-    scatter(xOffset + xCoord(chIdx(validCh)), ...
-            yCoord(chIdx(validCh)), ...
-            40, vecRF_COMspread(chIdx(validCh)), 'filled', 'square');
-    scatter(xOffset + xCoord(chIdx(nanCh)), ...
-            yCoord(chIdx(nanCh)), 40, 'r', 'filled', 'square');
+	chIdx = find(shankInd == sI);
+	xOffset = shankPitch*(sI-1);
+	
+	nanCh = isnan(vecRF_COMspread(chIdx));
+	validCh = ~nanCh;
+	
+	scatter(xOffset + xCoord(chIdx(validCh)), ...
+		yCoord(chIdx(validCh)), ...
+		40, vecRF_COMspread(chIdx(validCh)), 'filled', 'square');
+	scatter(xOffset + xCoord(chIdx(nanCh)), ...
+		yCoord(chIdx(nanCh)), 40, 'r', 'filled', 'square');
 end
-colormap parula; colorbar; clim([0 max(vecRF_COMspread)]);
-title('RF Sharpness (1 / COM Spread) — All Shanks');
+colormap parula; colorbar; caxis([0 max(vecRF_COMspread)]);
+title('RF Sharpness (1 / COM Spread) ??? All Shanks');
 xlabel('Probe X'); ylabel('Probe Y'); axis equal;
 
 % --------------------
 % RF SNR
 figure('Name','RF SNR','Color','w'); hold on;
 for sI = 1:nShank
-    chIdx = find(shankInd == sI);
-    xOffset = shankPitch*(sI-1);
-
-    nanCh = isnan(vecRF_SNR(chIdx));
-    validCh = ~nanCh;
-
-    scatter(xOffset + xCoord(chIdx(validCh)), ...
-            yCoord(chIdx(validCh)), ...
-            40, vecRF_SNR(chIdx(validCh)), 'filled', 'square');
-    scatter(xOffset + xCoord(chIdx(nanCh)), ...
-            yCoord(chIdx(nanCh)), 40, 'r', 'filled', 'square');
+	chIdx = find(shankInd == sI);
+	xOffset = shankPitch*(sI-1);
+	
+	nanCh = isnan(vecRF_SNR(chIdx));
+	validCh = ~nanCh;
+	
+	scatter(xOffset + xCoord(chIdx(validCh)), ...
+		yCoord(chIdx(validCh)), ...
+		40, vecRF_SNR(chIdx(validCh)), 'filled', 'square');
+	scatter(xOffset + xCoord(chIdx(nanCh)), ...
+		yCoord(chIdx(nanCh)), 40, 'r', 'filled', 'square');
 end
-colormap parula; colorbar; clim([0 max(vecRF_SNR)]);
-title('RF SNR — All Shanks');
+colormap parula; colorbar; caxis([0 max(vecRF_SNR)]);
+title('RF SNR ??? All Shanks');
 xlabel('Probe X'); ylabel('Probe Y'); axis equal;
 
 %% 9. Plot example RF maps per shank (top N channels)
 topN = 20;
 for sh = 1:nShank
-    channelsInShank = find(shankInd == sh);
-    if isempty(channelsInShank), continue; end
-
-    [~, sortIdx] = sort(max(matAvgRespAll(:,:,channelsInShank),[],[1 2]), 'descend');
-    topChans = channelsInShank(sortIdx(1:min(topN,numel(sortIdx))));
-
-    figure('Name',sprintf('RF Examples — Shank %d',sh),'Color','w'); hold on; %maxfig;
-    nRows = 4; nCols = ceil(topN/nRows);
-    for k = 1:numel(topChans)
-        intCh = topChans(k);
-        subplot(nRows,nCols,k); hold on;
-        imagesc(vecX_pix, vecY_pix, squeeze(matAvgRespAll(:,:,intCh)));
-        colormap parula; colorbar; title(colorbar,'Rate (sp/s)');
-        xlabel('X (pix)'); ylabel('Y (pix)'); axis equal; axis tight;
-        title(sprintf('Channel %d', intCh));
-    end
-    sgtitle(sprintf('RF Examples — Shank %d',sh));
+	channelsInShank = find(shankInd == sh);
+	if isempty(channelsInShank), continue; end
+	
+	%     [~, sortIdx] = sort(max(matAvgRespAll(:,:,channelsInShank),[],[1 2]), 'descend');
+	
+	respBlock = matAvgRespAll(:,:,channelsInShank);   % X ? Y ? channels
+	respBlock = reshape(respBlock, [], size(respBlock,3)); % (X*Y) ? channels
+	peakResp = max(respBlock, [], 1);  % 1 ? channels
+	
+	[~, sortIdx] = sort(peakResp, 'descend');
+	topChans = channelsInShank(sortIdx(1:min(topN,numel(sortIdx))));
+	
+	figure('Name',sprintf('RF Examples ??? Shank %d',sh),'Color','w'); hold on; %maxfig;
+	nRows = 4; nCols = ceil(topN/nRows);
+	for k = 1:numel(topChans)
+		intCh = topChans(k);
+		subplot(nRows,nCols,k); hold on;
+		imagesc(vecX_pix, vecY_pix, squeeze(matAvgRespAll(:,:,intCh)));
+		colormap parula; colorbar; title(colorbar,'Rate (sp/s)');
+		xlabel('X (pix)'); ylabel('Y (pix)'); axis equal; axis tight;
+		title(sprintf('Channel %d', intCh));
+	end
+% 	sgtitle(sprintf('RF Examples ??? Shank %d',sh));
+suptitle(sprintf('RF Examples ? Shank %d', sh));
 end
